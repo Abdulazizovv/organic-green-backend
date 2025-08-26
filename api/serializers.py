@@ -1,10 +1,298 @@
 """
-Serializers for Product API
+Serializers for API
 Professional-grade serializers with validation and optimization
 """
 from rest_framework import serializers
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from django.contrib.auth.models import User
+from django.contrib.auth import authenticate
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError
 from apps.products.models import Product, ProductCategory, ProductTag, ProductImage
 from django.db.models import Avg, Count
+import re
+
+
+# Authentication Serializers
+
+class SimpleUserRegistrationSerializer(serializers.ModelSerializer):
+    """Simple user registration - only username and password required"""
+    
+    password = serializers.CharField(
+        write_only=True,
+        min_length=4,
+        help_text="Parol kamida 4 ta belgidan iborat bo'lishi kerak"
+    )
+    
+    class Meta:
+        model = User
+        fields = ['id', 'username', 'password']
+        read_only_fields = ['id']
+        
+    def validate_username(self, value):
+        """Validate username"""
+        if len(value) < 3:
+            raise serializers.ValidationError(
+                "Foydalanuvchi nomi kamida 3 ta belgidan iborat bo'lishi kerak."
+            )
+            
+        if User.objects.filter(username=value).exists():
+            raise serializers.ValidationError(
+                "Bu foydalanuvchi nomi allaqachon band."
+            )
+            
+        return value
+        
+    def validate_password(self, value):
+        """Simple password validation"""
+        if len(value) < 4:
+            raise serializers.ValidationError(
+                "Parol kamida 4 ta belgidan iborat bo'lishi kerak."
+            )
+        return value
+        
+    def create(self, validated_data):
+        """Create new user"""
+        user = User.objects.create_user(
+            username=validated_data['username'],
+            password=validated_data['password'],
+            email=f"{validated_data['username']}@temp.com"  # Temporary email
+        )
+        return user
+
+
+class UserRegistrationSerializer(serializers.ModelSerializer):
+    """Serializer for user registration - simplified version"""
+    
+    password = serializers.CharField(
+        write_only=True,
+        min_length=6,
+        help_text="Password must be at least 6 characters long"
+    )
+    password_confirm = serializers.CharField(
+        write_only=True,
+        help_text="Confirm your password"
+    )
+    email = serializers.EmailField(required=True)
+    first_name = serializers.CharField(required=False, max_length=30, allow_blank=True)
+    last_name = serializers.CharField(required=False, max_length=30, allow_blank=True)
+    
+    class Meta:
+        model = User
+        fields = [
+            'id', 'username', 'email', 'first_name', 'last_name',
+            'password', 'password_confirm'
+        ]
+        read_only_fields = ['id']
+        
+    def validate_username(self, value):
+        """Validate username"""
+        if len(value) < 3:
+            raise serializers.ValidationError(
+                "Foydalanuvchi nomi kamida 3 ta belgidan iborat bo'lishi kerak."
+            )
+        
+        if not re.match(r'^[a-zA-Z0-9_]+$', value):
+            raise serializers.ValidationError(
+                "Foydalanuvchi nomida faqat harflar, raqamlar va pastki chiziq bo'lishi mumkin."
+            )
+            
+        if User.objects.filter(username=value).exists():
+            raise serializers.ValidationError(
+                "Bu foydalanuvchi nomi allaqachon band."
+            )
+            
+        return value
+        
+    def validate_email(self, value):
+        """Validate email"""
+        if User.objects.filter(email=value).exists():
+            raise serializers.ValidationError(
+                "Bu email allaqachon ro'yxatdan o'tgan."
+            )
+        return value
+        
+    def validate_password(self, value):
+        """Validate password - simplified"""
+        if len(value) < 6:
+            raise serializers.ValidationError(
+                "Parol kamida 6 ta belgidan iborat bo'lishi kerak."
+            )
+        return value
+        
+    def validate(self, attrs):
+        """Validate password confirmation"""
+        if attrs['password'] != attrs['password_confirm']:
+            raise serializers.ValidationError({
+                'password_confirm': 'Parollar mos kelmaydi.'
+            })
+        return attrs
+        
+    def create(self, validated_data):
+        """Create new user"""
+        validated_data.pop('password_confirm')
+        
+        # Set default values for optional fields
+        if not validated_data.get('first_name'):
+            validated_data['first_name'] = ''
+        if not validated_data.get('last_name'):
+            validated_data['last_name'] = ''
+            
+        user = User.objects.create_user(**validated_data)
+        return user
+
+
+class UserLoginSerializer(serializers.Serializer):
+    """Serializer for user login"""
+    
+    username = serializers.CharField(
+        required=True,
+        help_text="Foydalanuvchi nomi yoki email"
+    )
+    password = serializers.CharField(
+        required=True,
+        write_only=True,
+        help_text="Parol"
+    )
+    
+    def validate(self, attrs):
+        """Validate login credentials"""
+        username = attrs.get('username')
+        password = attrs.get('password')
+        
+        if username and password:
+            # Try to authenticate with username first
+            user = authenticate(username=username, password=password)
+            
+            # If that fails, try with email
+            if not user:
+                try:
+                    user_obj = User.objects.get(email=username)
+                    user = authenticate(username=user_obj.username, password=password)
+                except User.DoesNotExist:
+                    pass
+            
+            if not user:
+                raise serializers.ValidationError(
+                    'Foydalanuvchi nomi yoki parol noto\'g\'ri.'
+                )
+                
+            if not user.is_active:
+                raise serializers.ValidationError(
+                    'Foydalanuvchi hisobi faol emas.'
+                )
+                
+            attrs['user'] = user
+            return attrs
+        else:
+            raise serializers.ValidationError(
+                'Foydalanuvchi nomi va parol kiritish majburiy.'
+            )
+
+
+class UserProfileSerializer(serializers.ModelSerializer):
+    """Serializer for user profile"""
+    
+    full_name = serializers.SerializerMethodField()
+    date_joined = serializers.DateTimeField(read_only=True)
+    last_login = serializers.DateTimeField(read_only=True)
+    
+    class Meta:
+        model = User
+        fields = [
+            'id', 'username', 'email', 'first_name', 'last_name',
+            'full_name', 'is_active', 'date_joined', 'last_login'
+        ]
+        read_only_fields = ['id', 'username', 'is_active', 'date_joined', 'last_login']
+        
+    def get_full_name(self, obj):
+        """Get user's full name"""
+        return f"{obj.first_name} {obj.last_name}".strip()
+        
+    def validate_email(self, value):
+        """Validate email during update"""
+        user = self.instance
+        if user and User.objects.filter(email=value).exclude(id=user.id).exists():
+            raise serializers.ValidationError(
+                "A user with this email already exists."
+            )
+        return value
+
+
+class ChangePasswordSerializer(serializers.Serializer):
+    """Serializer for changing password"""
+    
+    old_password = serializers.CharField(required=True, write_only=True)
+    new_password = serializers.CharField(required=True, write_only=True, min_length=8)
+    new_password_confirm = serializers.CharField(required=True, write_only=True)
+    
+    def validate_old_password(self, value):
+        """Validate old password"""
+        user = self.context['request'].user
+        if not user.check_password(value):
+            raise serializers.ValidationError('Old password is incorrect.')
+        return value
+        
+    def validate_new_password(self, value):
+        """Validate new password"""
+        try:
+            validate_password(value)
+        except ValidationError as e:
+            raise serializers.ValidationError(list(e.messages))
+        return value
+        
+    def validate(self, attrs):
+        """Validate password confirmation"""
+        if attrs['new_password'] != attrs['new_password_confirm']:
+            raise serializers.ValidationError({
+                'new_password_confirm': 'New password fields do not match.'
+            })
+        return attrs
+        
+    def save(self):
+        """Save new password"""
+        user = self.context['request'].user
+        user.set_password(self.validated_data['new_password'])
+        user.save()
+        return user
+
+
+class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
+    """Custom JWT token serializer with additional user info"""
+    
+    @classmethod
+    def get_token(cls, user):
+        token = super().get_token(user)
+        
+        # Add custom claims
+        token['username'] = user.username
+        token['email'] = user.email
+        token['full_name'] = f"{user.first_name} {user.last_name}".strip()
+        
+        return token
+        
+    def validate(self, attrs):
+        """Allow login with email or username"""
+        username = attrs.get('username')
+        password = attrs.get('password')
+        
+        # Try to get user by email if username is email format
+        if '@' in username:
+            try:
+                user = User.objects.get(email=username)
+                attrs['username'] = user.username
+            except User.DoesNotExist:
+                pass
+                
+        data = super().validate(attrs)
+        
+        # Add user data to response
+        data['user'] = UserProfileSerializer(self.user).data
+        
+        return data
+
+
+# Product Serializers
 
 
 class ProductImageSerializer(serializers.ModelSerializer):

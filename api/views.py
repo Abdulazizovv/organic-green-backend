@@ -1,26 +1,291 @@
 """
-Professional API Views for Products
+Professional API Views
 Comprehensive RESTful API with advanced features
 """
 from rest_framework import generics, viewsets, status, filters
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
+from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly, AllowAny
 from rest_framework.throttling import UserRateThrottle, AnonRateThrottle
 from rest_framework.pagination import PageNumberPagination
+from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework_simplejwt.tokens import RefreshToken
 from django_filters.rest_framework import DjangoFilterBackend
 from django.db.models import Q, Count, Avg, Sum, F
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.core.cache import cache
+from django.contrib.auth.models import User
 from apps.products.models import Product, ProductCategory, ProductTag
 from .serializers import (
+    # Authentication serializers
+    SimpleUserRegistrationSerializer, UserRegistrationSerializer, UserLoginSerializer, UserProfileSerializer,
+    ChangePasswordSerializer, CustomTokenObtainPairSerializer,
+    # Product serializers
     ProductListSerializer, ProductDetailSerializer, ProductCreateUpdateSerializer,
     ProductCategorySerializer, ProductTagSerializer, ProductStatsSerializer
 )
 import logging
 
 logger = logging.getLogger(__name__)
+
+
+# Authentication Views
+
+class SimpleUserRegistrationView(generics.CreateAPIView):
+    """
+    Simple user registration endpoint
+    
+    Register a new user with only username and password.
+    Returns user data and JWT tokens upon successful registration.
+    """
+    queryset = User.objects.all()
+    serializer_class = SimpleUserRegistrationSerializer
+    permission_classes = [AllowAny]
+    throttle_classes = [AnonRateThrottle]
+    
+    def create(self, request, *args, **kwargs):
+        """Create user and return tokens"""
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        # Create user
+        user = serializer.save()
+        
+        # Generate tokens
+        refresh = RefreshToken.for_user(user)
+        
+        # Prepare response data
+        user_data = UserProfileSerializer(user).data
+        
+        response_data = {
+            'message': 'Foydalanuvchi muvaffaqiyatli ro\'yxatdan o\'tdi',
+            'user': user_data,
+            'tokens': {
+                'refresh': str(refresh),
+                'access': str(refresh.access_token),
+            }
+        }
+        
+        logger.info(f"New user registered (simple): {user.username}")
+        
+        return Response(response_data, status=status.HTTP_201_CREATED)
+
+
+class UserRegistrationView(generics.CreateAPIView):
+    """
+    User registration endpoint
+    
+    Register a new user with username, email, password, first_name, and last_name.
+    Returns user data and JWT tokens upon successful registration.
+    """
+    queryset = User.objects.all()
+    serializer_class = UserRegistrationSerializer
+    permission_classes = [AllowAny]
+    throttle_classes = [AnonRateThrottle]
+    
+    def create(self, request, *args, **kwargs):
+        """Create user and return tokens"""
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        # Create user
+        user = serializer.save()
+        
+        # Generate tokens
+        refresh = RefreshToken.for_user(user)
+        
+        # Prepare response data
+        user_data = UserProfileSerializer(user).data
+        
+        response_data = {
+            'message': 'Foydalanuvchi muvaffaqiyatli ro\'yxatdan o\'tdi',
+            'user': user_data,
+            'tokens': {
+                'refresh': str(refresh),
+                'access': str(refresh.access_token),
+            }
+        }
+        
+        logger.info(f"New user registered: {user.username}")
+        
+        return Response(response_data, status=status.HTTP_201_CREATED)
+
+
+class UserLoginView(generics.GenericAPIView):
+    """
+    User login endpoint
+    
+    Login with username/email and password.
+    Returns user data and JWT tokens upon successful authentication.
+    """
+    serializer_class = UserLoginSerializer
+    permission_classes = [AllowAny]
+    throttle_classes = [AnonRateThrottle]
+    
+    def post(self, request, *args, **kwargs):
+        """Authenticate user and return tokens"""
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        user = serializer.validated_data['user']
+        
+        # Generate tokens
+        refresh = RefreshToken.for_user(user)
+        
+        # Update last login
+        user.last_login = timezone.now()
+        user.save(update_fields=['last_login'])
+        
+        # Prepare response data
+        user_data = UserProfileSerializer(user).data
+        
+        response_data = {
+            'message': 'Tizimga muvaffaqiyatli kirildi',
+            'user': user_data,
+            'tokens': {
+                'refresh': str(refresh),
+                'access': str(refresh.access_token),
+            }
+        }
+        
+        logger.info(f"User logged in: {user.username}")
+        
+        return Response(response_data, status=status.HTTP_200_OK)
+
+
+class CustomTokenObtainPairView(TokenObtainPairView):
+    """Custom JWT token obtain view with additional user info"""
+    serializer_class = CustomTokenObtainPairSerializer
+
+
+class UserProfileView(generics.RetrieveUpdateAPIView):
+    """
+    User profile endpoint
+    
+    Get and update current user's profile information.
+    """
+    serializer_class = UserProfileSerializer
+    permission_classes = [IsAuthenticated]
+    
+    def get_object(self):
+        """Return current authenticated user"""
+        return self.request.user
+        
+    def update(self, request, *args, **kwargs):
+        """Update user profile"""
+        response = super().update(request, *args, **kwargs)
+        
+        if response.status_code == 200:
+            logger.info(f"User profile updated: {request.user.username}")
+            response.data['message'] = 'Profil muvaffaqiyatli yangilandi'
+            
+        return response
+
+
+class ChangePasswordView(generics.GenericAPIView):
+    """
+    Change password endpoint
+    
+    Change current user's password by providing old and new passwords.
+    """
+    serializer_class = ChangePasswordSerializer
+    permission_classes = [IsAuthenticated]
+    
+    def post(self, request, *args, **kwargs):
+        """Change user password"""
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        # Save new password
+        serializer.save()
+        
+        logger.info(f"Password changed for user: {request.user.username}")
+        
+        return Response({
+            'message': 'Parol muvaffaqiyatli o\'zgartirildi'
+        }, status=status.HTTP_200_OK)
+
+
+class UserLogoutView(generics.GenericAPIView):
+    """
+    User logout endpoint
+    
+    Logout current user by blacklisting the refresh token.
+    """
+    permission_classes = [IsAuthenticated]
+    
+    def post(self, request, *args, **kwargs):
+        """Logout user by blacklisting refresh token"""
+        try:
+            refresh_token = request.data.get('refresh_token')
+            
+            if not refresh_token:
+                return Response({
+                    'error': 'Refresh token kiritish majburiy'
+                }, status=status.HTTP_400_BAD_REQUEST)
+                
+            token = RefreshToken(refresh_token)
+            token.blacklist()
+            
+            logger.info(f"User logged out: {request.user.username}")
+            
+            return Response({
+                'message': 'Tizimdan muvaffaqiyatli chiqildi'
+            }, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            logger.error(f"Logout error for user {request.user.username}: {str(e)}")
+            return Response({
+                'error': 'Noto\'g\'ri token'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+
+# Utility Views for Authentication
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def check_auth_status(request):
+    """
+    Check authentication status
+    
+    Returns current user information if authenticated.
+    """
+    user_data = UserProfileSerializer(request.user).data
+    
+    return Response({
+        'authenticated': True,
+        'user': user_data
+    }, status=status.HTTP_200_OK)
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def auth_info(request):
+    """
+    Get authentication information and endpoints
+    
+    Returns available authentication endpoints and their descriptions.
+    """
+    return Response({
+        'title': 'Authentication API',
+        'description': 'JWT-based authentication system',
+        'endpoints': {
+            'register': '/api/auth/register/ (POST)',
+            'login': '/api/auth/login/ (POST)',
+            'token': '/api/auth/token/ (POST)',
+            'token_refresh': '/api/auth/token/refresh/ (POST)',
+            'profile': '/api/auth/profile/ (GET, PUT, PATCH)',
+            'change_password': '/api/auth/change-password/ (POST)',
+            'logout': '/api/auth/logout/ (POST)',
+            'check_status': '/api/auth/status/ (GET)',
+        },
+        'authentication': 'Bearer Token (JWT)',
+        'token_lifetime': {
+            'access': '60 minutes',
+            'refresh': '7 days'
+        }
+    }, status=status.HTTP_200_OK)
 
 
 class StandardResultsSetPagination(PageNumberPagination):
@@ -389,39 +654,118 @@ def api_health_check(request):
 def api_documentation(request):
     """API documentation endpoint"""
     docs = {
-        'title': 'Organic Green Products API',
+        'title': 'Organic Green API',
         'version': '1.0.0',
-        'description': 'Comprehensive REST API for managing organic products',
+        'description': 'Comprehensive REST API for organic products with JWT authentication',
+        'authentication': {
+            'type': 'JWT Bearer Token',
+            'header': 'Authorization: Bearer <token>',
+            'token_lifetime': {
+                'access': '60 minutes',
+                'refresh': '7 days'
+            }
+        },
         'endpoints': {
+            'authentication': {
+                'register_simple': {
+                    'url': '/api/auth/register/simple/',
+                    'method': 'POST',
+                    'description': 'Oddiy ro\'yxatdan o\'tish (faqat username va password)',
+                    'auth_required': False,
+                    'fields': ['username', 'password']
+                },
+                'register': {
+                    'url': '/api/auth/register/',
+                    'method': 'POST',
+                    'description': 'To\'liq ro\'yxatdan o\'tish',
+                    'auth_required': False,
+                    'fields': ['username', 'email', 'password', 'password_confirm', 'first_name', 'last_name']
+                },
+                'login': {
+                    'url': '/api/auth/login/',
+                    'method': 'POST',
+                    'description': 'Tizimga kirish',
+                    'auth_required': False,
+                    'fields': ['username', 'password']
+                },
+                'token': {
+                    'url': '/api/auth/token/',
+                    'method': 'POST',
+                    'description': 'Get JWT tokens',
+                    'auth_required': False,
+                    'fields': ['username', 'password']
+                },
+                'token_refresh': {
+                    'url': '/api/auth/token/refresh/',
+                    'method': 'POST',
+                    'description': 'Refresh access token',
+                    'auth_required': False,
+                    'fields': ['refresh']
+                },
+                'profile': {
+                    'url': '/api/auth/profile/',
+                    'methods': ['GET', 'PUT', 'PATCH'],
+                    'description': 'Get/update user profile',
+                    'auth_required': True
+                },
+                'change_password': {
+                    'url': '/api/auth/change-password/',
+                    'method': 'POST',
+                    'description': 'Change user password',
+                    'auth_required': True,
+                    'fields': ['old_password', 'new_password', 'new_password_confirm']
+                },
+                'logout': {
+                    'url': '/api/auth/logout/',
+                    'method': 'POST',
+                    'description': 'Logout user (blacklist token)',
+                    'auth_required': True,
+                    'fields': ['refresh_token']
+                },
+                'status': {
+                    'url': '/api/auth/status/',
+                    'method': 'GET',
+                    'description': 'Check authentication status',
+                    'auth_required': True
+                }
+            },
+            'products': {
+                'list_create': {
+                    'url': '/api/products/',
+                    'methods': ['GET', 'POST'],
+                    'description': 'List/create products with advanced filtering',
+                    'auth_required': 'POST only'
+                },
+                'detail': {
+                    'url': '/api/products/{id}/',
+                    'methods': ['GET', 'PUT', 'PATCH', 'DELETE'],
+                    'description': 'Product detail operations',
+                    'auth_required': 'Modify only'
+                },
+                'featured': {
+                    'url': '/api/products/featured/',
+                    'method': 'GET',
+                    'description': 'Get featured products',
+                    'auth_required': False
+                },
+                'on_sale': {
+                    'url': '/api/products/on_sale/',
+                    'method': 'GET',
+                    'description': 'Get products on sale',
+                    'auth_required': False
+                }
+            },
             'categories': {
                 'url': '/api/categories/',
                 'methods': ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
-                'description': 'CRUD operations for product categories'
+                'description': 'CRUD operations for product categories',
+                'auth_required': 'Modify only'
             },
             'tags': {
                 'url': '/api/tags/',
                 'methods': ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
-                'description': 'CRUD operations for product tags'
-            },
-            'products': {
-                'url': '/api/products/',
-                'methods': ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
-                'description': 'CRUD operations for products with advanced filtering'
-            },
-            'featured_products': {
-                'url': '/api/products/featured/',
-                'methods': ['GET'],
-                'description': 'Get featured products'
-            },
-            'on_sale_products': {
-                'url': '/api/products/on_sale/',
-                'methods': ['GET'],
-                'description': 'Get products on sale'
-            },
-            'product_stats': {
-                'url': '/api/products/stats/',
-                'methods': ['GET'],
-                'description': 'Get product statistics (admin only)'
+                'description': 'CRUD operations for product tags',
+                'auth_required': 'Modify only'
             }
         },
         'filters': {

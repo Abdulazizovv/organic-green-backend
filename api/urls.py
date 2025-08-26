@@ -4,11 +4,21 @@ URL configuration for API app
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from rest_framework_simplejwt.views import (
-    TokenObtainPairView,
     TokenRefreshView,
     TokenVerifyView,
 )
 from .views import (
+    # Authentication views
+    SimpleUserRegistrationView,
+    UserRegistrationView,
+    UserLoginView,
+    CustomTokenObtainPairView,
+    UserProfileView,
+    ChangePasswordView,
+    UserLogoutView,
+    check_auth_status,
+    auth_info,
+    # Product views
     ProductViewSet,
     ProductCategoryViewSet,
     ProductTagViewSet,
@@ -30,9 +40,17 @@ urlpatterns = [
     path('health/', api_health_check, name='api-health'),
     
     # Authentication endpoints
-    path('auth/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('auth/', auth_info, name='auth-info'),
+    path('auth/register/simple/', SimpleUserRegistrationView.as_view(), name='auth-register-simple'),
+    path('auth/register/', UserRegistrationView.as_view(), name='auth-register'),
+    path('auth/login/', UserLoginView.as_view(), name='auth-login'),
+    path('auth/token/', CustomTokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('auth/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('auth/token/verify/', TokenVerifyView.as_view(), name='token_verify'),
+    path('auth/profile/', UserProfileView.as_view(), name='auth-profile'),
+    path('auth/change-password/', ChangePasswordView.as_view(), name='auth-change-password'),
+    path('auth/logout/', UserLogoutView.as_view(), name='auth-logout'),
+    path('auth/status/', check_auth_status, name='auth-status'),
     
     # API routes
     path('', include(router.urls)),
