@@ -1,0 +1,191 @@
+/* Custom Admin CSS for Product Management */
+
+/* Enhanced list display */
+.admin-product-list .field-price_display {
+    text-align: right;
+    font-weight: bold;
+}
+
+.admin-product-list .field-sale_price_display {
+    text-align: right;
+}
+
+.admin-product-list .field-stock_status {
+    text-align: center;
+}
+
+.admin-product-list .field-status_display {
+    text-align: center;
+}
+
+/* Featured products highlighting */
+.admin-product-list tr.featured {
+    background-color: #fff3cd;
+}
+
+/* Low stock warning */
+.admin-product-list .low-stock {
+    background-color: #f8d7da;
+}
+
+/* Out of stock warning */
+.admin-product-list .out-of-stock {
+    background-color: #f5c6cb;
+}
+
+/* Inactive products styling */
+.admin-product-list .inactive {
+    opacity: 0.6;
+}
+
+/* Deleted products styling */
+.admin-product-list .deleted {
+    background-color: #e2e3e5;
+    text-decoration: line-through;
+}
+
+/* Form enhancements */
+.form-row .field-box {
+    margin-bottom: 10px;
+}
+
+/* Multilingual field styling */
+.multilingual-fields {
+    border: 1px solid #ddd;
+    padding: 10px;
+    margin: 10px 0;
+    border-radius: 4px;
+    background-color: #f9f9f9;
+}
+
+.multilingual-fields h3 {
+    margin-top: 0;
+    color: #333;
+    border-bottom: 1px solid #ddd;
+    padding-bottom: 5px;
+}
+
+/* Price fields styling */
+.price-fields {
+    background-color: #e8f5e8;
+    padding: 15px;
+    border-radius: 5px;
+    margin: 10px 0;
+}
+
+.price-fields .form-row {
+    margin-bottom: 10px;
+}
+
+/* Status indicators */
+.status-active {
+    color: #28a745;
+    font-weight: bold;
+}
+
+.status-inactive {
+    color: #ffc107;
+    font-weight: bold;
+}
+
+.status-deleted {
+    color: #dc3545;
+    font-weight: bold;
+}
+
+/* Action buttons styling */
+.admin-actions select {
+    margin-right: 10px;
+}
+
+.admin-actions button {
+    background-color: #007cba;
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.admin-actions button:hover {
+    background-color: #005a87;
+}
+
+/* Filter sidebar enhancements */
+.module.filtered {
+    border-left: 3px solid #007cba;
+}
+
+/* Search box styling */
+.module.filtered #changelist-search input {
+    border: 2px solid #007cba;
+    border-radius: 4px;
+    padding: 8px;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .admin-product-list .field-description {
+        display: none;
+    }
+    
+    .admin-product-list .field-suggested_products {
+        display: none;
+    }
+}
+
+/* Custom fieldset styling */
+.fieldset.prices {
+    background-color: #f0f8f0;
+}
+
+.fieldset.status {
+    background-color: #f8f9fa;
+}
+
+.fieldset.relationships {
+    background-color: #fff8e1;
+}
+
+/* Improved readonly fields */
+.readonly {
+    background-color: #f8f9fa;
+    border: 1px solid #e9ecef;
+    padding: 8px;
+    border-radius: 4px;
+    font-family: monospace;
+}
+
+/* Category and tag chips */
+.category-chip, .tag-chip {
+    display: inline-block;
+    background-color: #007cba;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    margin: 2px;
+}
+
+.tag-chip {
+    background-color: #28a745;
+}
+
+/* Bulk actions notification */
+.bulk-action-success {
+    background-color: #d4edda;
+    border: 1px solid #c3e6cb;
+    color: #155724;
+    padding: 10px;
+    border-radius: 4px;
+    margin: 10px 0;
+}
+
+.bulk-action-warning {
+    background-color: #fff3cd;
+    border: 1px solid #ffeaa7;
+    color: #856404;
+    padding: 10px;
+    border-radius: 4px;
+    margin: 10px 0;
+}
