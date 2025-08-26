@@ -2,6 +2,14 @@ from django.db import models
 from django.utils import timezone
 import uuid
 from django.utils.text import slugify
+import os
+
+
+def product_image_upload_path(instance, filename):
+    """Generate upload path for product images"""
+    ext = filename.split('.')[-1]
+    filename = f"{uuid.uuid4()}.{ext}"
+    return os.path.join('products', str(instance.product.id), filename)
 
 
 class ProductCategory(models.Model):
@@ -20,6 +28,10 @@ class ProductCategory(models.Model):
     def __str__(self):
         return self.name_uz
     
+    class Meta:
+        verbose_name = "Mahsulot Kategoriyasi"
+        verbose_name_plural = "Mahsulot Kategoriyalari"
+    
 class ProductTag(models.Model):
     # Multilingual fields for tag name
     name_uz = models.CharField(max_length=100)
@@ -31,6 +43,10 @@ class ProductTag(models.Model):
     
     def __str__(self):
         return self.name_uz
+    
+    class Meta:
+        verbose_name = "Mahsulot Teg"
+        verbose_name_plural = "Mahsulot Teglari"
 
 
 class Product(models.Model):
@@ -65,6 +81,10 @@ class Product(models.Model):
     
     deleted_at = models.DateTimeField(null=True, blank=True)
     
+    class Meta:
+        verbose_name = "Mahsulot"
+        verbose_name_plural = "Mahsulotlar"
+    
     def __str__(self):
         return self.name_uz
     
@@ -93,6 +113,24 @@ class Product(models.Model):
         return self.sale_price if self.is_on_sale else self.price
     
     @property
+    def primary_image(self):
+        """Get the primary image for this product"""
+        primary = self.images.filter(is_primary=True).first()
+        if primary:
+            return primary
+        return self.images.first()
+    
+    @property
+    def all_images(self):
+        """Get all images for this product ordered by order field"""
+        return self.images.all()
+    
+    @property
+    def image_count(self):
+        """Get total number of images for this product"""
+        return self.images.count()
+    
+    @property
     def tag_list(self, language='uz'):
         if language == 'uz':
             return [tag.name_uz for tag in self.tags.all()]
@@ -118,4 +156,32 @@ class Product(models.Model):
     def save(self, *args, **kwargs):
         if not self.slug:
             self.slug = slugify(self.name_uz)
+        super().save(*args, **kwargs)
+
+
+class ProductImage(models.Model):
+    """Model for storing multiple images for each product"""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='images')
+    image = models.ImageField(upload_to=product_image_upload_path)
+    alt_text_uz = models.CharField(max_length=255, blank=True, help_text="Alt matn (O'zbek)")
+    alt_text_ru = models.CharField(max_length=255, blank=True, help_text="Alt matn (Rus)")
+    alt_text_en = models.CharField(max_length=255, blank=True, help_text="Alt text (English)")
+    is_primary = models.BooleanField(default=False, help_text="Asosiy rasm")
+    order = models.PositiveIntegerField(default=0, help_text="Rasmlarni tartib raqami")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['order', 'created_at']
+        verbose_name = "Mahsulot rasmi"
+        verbose_name_plural = "Mahsulot rasmlari"
+
+    def __str__(self):
+        return f"{self.product.name_uz} - Image {self.order}"
+
+    def save(self, *args, **kwargs):
+        # If this is marked as primary, unmark all other images for this product
+        if self.is_primary:
+            ProductImage.objects.filter(product=self.product, is_primary=True).exclude(id=self.id).update(is_primary=False)
         super().save(*args, **kwargs)

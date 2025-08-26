@@ -4,7 +4,74 @@ from django.urls import reverse
 from django.utils.safestring import mark_safe
 from django.db.models import Count, Q
 from django.utils import timezone
-from apps.products.models import Product, ProductCategory, ProductTag
+from apps.products.models import Product, ProductCategory, ProductTag, ProductImage
+
+
+class ProductImageInline(admin.TabularInline):
+    """Product ichida rasmlarni boshqarish uchun inline admin"""
+    model = ProductImage
+    extra = 1
+    fields = ('image', 'alt_text_uz', 'alt_text_ru', 'alt_text_en', 'is_primary', 'order', 'image_preview')
+    readonly_fields = ('image_preview',)
+    ordering = ('order',)
+    
+    def image_preview(self, obj):
+        """Rasm preview ko'rsatish"""
+        if obj.image:
+            return format_html(
+                '<img src="{}" style="max-height: 50px; max-width: 100px;" />',
+                obj.image.url
+            )
+        return "Rasm yo'q"
+    image_preview.short_description = "Preview"
+
+
+@admin.register(ProductImage)
+class ProductImageAdmin(admin.ModelAdmin):
+    """ProductImage modelini boshqarish uchun admin interface"""
+    
+    list_display = ('product', 'image_preview', 'alt_text_uz', 'is_primary', 'order', 'created_at')
+    list_filter = ('is_primary', 'created_at', 'product__category')
+    search_fields = ('product__name_uz', 'product__name_ru', 'product__name_en', 'alt_text_uz', 'alt_text_ru', 'alt_text_en')
+    list_editable = ('is_primary', 'order')
+    ordering = ('product', 'order', 'created_at')
+    readonly_fields = ('id', 'image_preview', 'created_at', 'updated_at')
+    
+    fieldsets = (
+        ('Asosiy ma\'lumotlar', {
+            'fields': (
+                'product',
+                'image',
+                'image_preview',
+                ('is_primary', 'order'),
+            )
+        }),
+        ('Alt matnlar', {
+            'fields': (
+                'alt_text_uz',
+                'alt_text_ru', 
+                'alt_text_en',
+            )
+        }),
+        ('Vaqt ma\'lumotlari', {
+            'fields': ('id', 'created_at', 'updated_at'),
+            'classes': ('collapse',)
+        })
+    )
+    
+    def image_preview(self, obj):
+        """Rasm preview ko'rsatish"""
+        if obj.image:
+            return format_html(
+                '<img src="{}" style="max-height: 200px; max-width: 300px;" />',
+                obj.image.url
+            )
+        return "Rasm yo'q"
+    image_preview.short_description = "Rasm Preview"
+    
+    def get_queryset(self, request):
+        """Optimized queryset"""
+        return super().get_queryset(request).select_related('product')
 
 
 @admin.register(ProductCategory)
@@ -97,10 +164,14 @@ class ProductTagInline(admin.TabularInline):
 class ProductAdmin(admin.ModelAdmin):
     """Product modelini boshqarish uchun admin interface"""
     
+    inlines = [ProductImageInline]
+    
     list_display = (
         'name_uz', 
         'category', 
         'price_display', 
+        'primary_image_preview',
+        'images_count', 
         'sale_price_display',
         'stock',
         'stock_status',
@@ -195,6 +266,28 @@ class ProductAdmin(admin.ModelAdmin):
         price_str = "{:,.2f}".format(float(obj.price))
         return price_str + " so'm"
     price_display.short_description = "Narxi"
+    
+    def primary_image_preview(self, obj):
+        """Asosiy rasmni preview ko'rsatish"""
+        primary_image = obj.primary_image
+        if primary_image and primary_image.image:
+            return format_html(
+                '<img src="{}" style="max-height: 50px; max-width: 50px;" />',
+                primary_image.image.url
+            )
+        return "Rasm yo'q"
+    primary_image_preview.short_description = "Asosiy rasm"
+    
+    def images_count(self, obj):
+        """Mahsulotdagi rasmlar sonini ko'rsatish"""
+        count = obj.image_count
+        if count > 0:
+            return format_html(
+                '<span style="color: green; font-weight: bold;">{} ta rasm</span>',
+                count
+            )
+        return format_html('<span style="color: red;">Rasm yo\'q</span>')
+    images_count.short_description = "Rasmlar soni"
     
     def sale_price_display(self, obj):
         """Chegirmali narxni ko'rsatish"""
