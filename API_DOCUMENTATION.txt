@@ -1,0 +1,1193 @@
+# Organic Green API Documentation
+
+**Complete REST API Documentation for Frontend Development**
+*Version 1.0.0 - Professional Backend API with Comprehensive Features*
+
+## Base URL
+```
+Development: http://localhost:8000/api/
+Production: https://your-domain.com/api/
+```
+
+## API Overview
+
+### Core Features
+- **JWT Authentication** with token refresh
+- **Pagination** on all list endpoints (20 items per page)
+- **Session-based Cart** for anonymous users
+- **Multi-language Support** (Uzbek, Russian, English)
+- **Advanced Product Filtering** and search
+- **Professional Error Handling**
+- **Rate Limiting** and throttling
+- **CORS Enabled** for frontend integration
+
+### Pagination System
+All list endpoints use **PageNumberPagination** with the following structure:
+
+**Pagination Parameters:**
+- `page`: Page number (default: 1)
+- `page_size`: Items per page (default: 20, max: 100)
+
+**Pagination Response Format:**
+```json
+{
+    "count": 150,               // Total number of items
+    "next": "http://localhost:8000/api/products/?page=2",
+    "previous": null,
+    "page_size": 20,           // Current page size
+    "total_pages": 8,          // Total number of pages
+    "current_page": 1,         // Current page number
+    "results": [...]           // Array of items for current page
+}
+```
+
+## Authentication
+
+### JWT Token System
+- **Access Token Lifetime:** 60 minutes
+- **Refresh Token Lifetime:** 7 days
+- **Header Format:** `Authorization: Bearer <access_token>`
+- **Token Rotation:** Enabled (old refresh tokens are blacklisted)
+
+### Session Support
+- **X-Session-Key:** Custom header for anonymous cart sessions
+- **Automatic Session Creation:** For anonymous users
+
+### Authentication Endpoints
+
+#### 1. Simple Registration
+**POST** `/api/auth/register/simple/`
+
+**Description:** Quick registration with username and password only
+
+**Request:**
+```json
+{
+    "username": "john_doe",
+    "password": "securepass123"
+}
+```
+
+**Success Response (201):**
+```json
+{
+    "message": "Foydalanuvchi muvaffaqiyatli ro'yxatdan o'tdi",
+    "user": {
+        "id": 1,
+        "username": "john_doe",
+        "email": "john_doe@temp.com",
+        "first_name": "",
+        "last_name": "",
+        "full_name": "",
+        "is_active": true,
+        "date_joined": "2025-01-15T10:30:00Z",
+        "last_login": null
+    },
+    "tokens": {
+        "refresh": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...",
+        "access": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..."
+    }
+}
+```
+
+#### 2. Full Registration
+**POST** `/api/auth/register/`
+
+**Description:** Complete registration with all user details
+
+**Request:**
+```json
+{
+    "username": "john_doe",
+    "email": "john@example.com",
+    "password": "securepass123",
+    "password_confirm": "securepass123",
+    "first_name": "John",
+    "last_name": "Doe"
+}
+```
+
+**Success Response (201):**
+```json
+{
+    "message": "Foydalanuvchi muvaffaqiyatli ro'yxatdan o'tdi",
+    "user": {
+        "id": 1,
+        "username": "john_doe",
+        "email": "john@example.com",
+        "first_name": "John",
+        "last_name": "Doe",
+        "full_name": "John Doe",
+        "is_active": true,
+        "date_joined": "2025-01-15T10:30:00Z",
+        "last_login": null
+    },
+    "tokens": {
+        "refresh": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...",
+        "access": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..."
+    }
+}
+```
+
+#### 3. Login
+**POST** `/api/auth/login/`
+
+**Description:** Login with username/email and password
+
+**Request:**
+```json
+{
+    "username": "john_doe",  // or email: "john@example.com"
+    "password": "securepass123"
+}
+```
+
+**Success Response (200):**
+```json
+{
+    "message": "Tizimga muvaffaqiyatli kirildi",
+    "user": {
+        "id": 1,
+        "username": "john_doe",
+        "email": "john@example.com",
+        "first_name": "John",
+        "last_name": "Doe",
+        "full_name": "John Doe",
+        "is_active": true,
+        "date_joined": "2025-01-15T10:30:00Z",
+        "last_login": "2025-01-15T12:45:00Z"
+    },
+    "tokens": {
+        "refresh": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...",
+        "access": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..."
+    }
+}
+```
+
+#### 4. JWT Token Obtain
+**POST** `/api/auth/token/`
+
+**Description:** Alternative token endpoint
+
+**Request:**
+```json
+{
+    "username": "john_doe",
+    "password": "securepass123"
+}
+```
+
+**Success Response (200):**
+```json
+{
+    "access": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...",
+    "refresh": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...",
+    "user": {
+        "id": 1,
+        "username": "john_doe",
+        "email": "john@example.com"
+    }
+}
+```
+
+#### 5. Token Refresh
+**POST** `/api/auth/token/refresh/`
+
+**Description:** Refresh access token using refresh token
+
+**Request:**
+```json
+{
+    "refresh": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..."
+}
+```
+
+**Success Response (200):**
+```json
+{
+    "access": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..."
+}
+```
+
+#### 6. User Profile
+**GET** `/api/auth/profile/`
+**Authentication Required**
+
+**Success Response (200):**
+```json
+{
+    "id": 1,
+    "username": "john_doe",
+    "email": "john@example.com",
+    "first_name": "John",
+    "last_name": "Doe",
+    "full_name": "John Doe",
+    "is_active": true,
+    "date_joined": "2025-01-15T10:30:00Z",
+    "last_login": "2025-01-15T12:45:00Z"
+}
+```
+
+#### 7. Update Profile
+**PUT/PATCH** `/api/auth/profile/`
+**Authentication Required**
+
+**Request:**
+```json
+{
+    "first_name": "Johnny",
+    "last_name": "Doe",
+    "email": "johnny@example.com"
+}
+```
+
+**Success Response (200):**
+```json
+{
+    "message": "Profil muvaffaqiyatli yangilandi",
+    "id": 1,
+    "username": "john_doe",
+    "email": "johnny@example.com",
+    "first_name": "Johnny",
+    "last_name": "Doe",
+    "full_name": "Johnny Doe",
+    "is_active": true,
+    "date_joined": "2025-01-15T10:30:00Z",
+    "last_login": "2025-01-15T12:45:00Z"
+}
+```
+
+#### 8. Change Password
+**POST** `/api/auth/change-password/`
+**Authentication Required**
+
+**Request:**
+```json
+{
+    "old_password": "securepass123",
+    "new_password": "newsecurepass456",
+    "new_password_confirm": "newsecurepass456"
+}
+```
+
+**Success Response (200):**
+```json
+{
+    "message": "Parol muvaffaqiyatli o'zgartirildi"
+}
+```
+
+#### 9. Logout
+**POST** `/api/auth/logout/`
+**Authentication Required**
+
+**Request:**
+```json
+{
+    "refresh_token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..."
+}
+```
+
+**Success Response (200):**
+```json
+{
+    "message": "Tizimdan muvaffaqiyatli chiqildi"
+}
+```
+
+#### 10. Authentication Status
+**GET** `/api/auth/status/`
+**Authentication Required**
+
+**Success Response (200):**
+```json
+{
+    "authenticated": true,
+    "user": {
+        "id": 1,
+        "username": "john_doe",
+        "email": "john@example.com",
+        "first_name": "John",
+        "last_name": "Doe",
+        "full_name": "John Doe",
+        "is_active": true,
+        "date_joined": "2025-01-15T10:30:00Z",
+        "last_login": "2025-01-15T12:45:00Z"
+    }
+}
+```
+
+## Products API
+
+### Product Endpoints
+
+#### 1. List Products (with Pagination)
+**GET** `/api/products/`
+
+**Query Parameters:**
+- `page`: Page number (default: 1)
+- `page_size`: Items per page (default: 20, max: 100)
+- `category`: Filter by category ID
+- `tags`: Filter by tag IDs (comma-separated)
+- `min_price`: Minimum price filter
+- `max_price`: Maximum price filter
+- `in_stock`: Filter by stock availability (true/false)
+- `featured`: Filter featured products (true/false)
+- `on_sale`: Filter products on sale (true/false)
+- `search`: Search in product names and descriptions
+- `ordering`: Order by: created_at, price, name_uz, stock, is_featured
+- `lang`: Language for localized content (uz/ru/en)
+
+**Example Request:**
+```
+GET /api/products/?page=2&page_size=10&category=1&featured=true&lang=en
+```
+
+**Success Response (200):**
+```json
+{
+    "count": 150,
+    "next": "http://localhost:8000/api/products/?page=3&page_size=10&category=1&featured=true&lang=en",
+    "previous": "http://localhost:8000/api/products/?page=1&page_size=10&category=1&featured=true&lang=en",
+    "page_size": 10,
+    "total_pages": 15,
+    "current_page": 2,
+    "results": [
+        {
+            "id": "550e8400-e29b-41d4-a716-446655440000",
+            "name": "Organic Tomatoes",
+            "slug": "organic-tomatoes",
+            "description": "Fresh organic tomatoes from local farms",
+            "category": {
+                "id": 1,
+                "name": "Vegetables"
+            },
+            "tags": [
+                {
+                    "id": 1,
+                    "name": "Organic"
+                }
+            ],
+            "price": "25000.00",
+            "sale_price": "20000.00",
+            "final_price": "20000.00",
+            "stock": 100,
+            "is_active": true,
+            "is_featured": true,
+            "images": [
+                {
+                    "id": 1,
+                    "image": "http://localhost:8000/media/products/tomatoes.jpg",
+                    "alt_text": "Organic tomatoes"
+                }
+            ],
+            "average_rating": 4.5,
+            "reviews_count": 12,
+            "created_at": "2025-01-15T10:30:00Z",
+            "updated_at": "2025-01-15T12:45:00Z"
+        }
+    ]
+}
+```
+
+#### 2. Get Product Details
+**GET** `/api/products/{id}/` or **GET** `/api/products/{slug}/`
+
+**Success Response (200):**
+```json
+{
+    "id": "550e8400-e29b-41d4-a716-446655440000",
+    "name": "Organic Tomatoes",
+    "slug": "organic-tomatoes",
+    "description": "Fresh organic tomatoes from local farms. Rich in vitamins and minerals, perfect for salads and cooking.",
+    "category": {
+        "id": 1,
+        "name": "Vegetables",
+        "description": "Fresh organic vegetables"
+    },
+    "tags": [
+        {
+            "id": 1,
+            "name": "Organic",
+            "description": "Certified organic products"
+        },
+        {
+            "id": 2,
+            "name": "Fresh",
+            "description": "Fresh daily products"
+        }
+    ],
+    "price": "25000.00",
+    "sale_price": "20000.00",
+    "final_price": "20000.00",
+    "stock": 100,
+    "is_active": true,
+    "is_featured": true,
+    "images": [
+        {
+            "id": 1,
+            "image": "http://localhost:8000/media/products/tomatoes.jpg",
+            "alt_text": "Organic tomatoes"
+        }
+    ],
+    "suggested_products": [
+        {
+            "id": "550e8400-e29b-41d4-a716-446655440001",
+            "name": "Organic Cucumbers",
+            "price": "15000.00",
+            "sale_price": null,
+            "final_price": "15000.00"
+        }
+    ],
+    "average_rating": 4.5,
+    "reviews_count": 12,
+    "created_at": "2025-01-15T10:30:00Z",
+    "updated_at": "2025-01-15T12:45:00Z"
+}
+```
+
+#### 3. Featured Products (with Pagination)
+**GET** `/api/products/featured/`
+
+**Query Parameters:**
+- `page`: Page number
+- `page_size`: Items per page
+- `lang`: Language (uz/ru/en)
+
+**Success Response (200):**
+```json
+{
+    "count": 25,
+    "next": "http://localhost:8000/api/products/featured/?page=2",
+    "previous": null,
+    "page_size": 20,
+    "total_pages": 2,
+    "current_page": 1,
+    "results": [...]
+}
+```
+
+#### 4. Products On Sale (with Pagination)
+**GET** `/api/products/on_sale/`
+
+**Success Response (200):**
+```json
+{
+    "count": 15,
+    "next": null,
+    "previous": null,
+    "page_size": 20,
+    "total_pages": 1,
+    "current_page": 1,
+    "results": [...]
+}
+```
+
+#### 5. Product Statistics (Admin Only)
+**GET** `/api/products/stats/`
+**Authentication Required: Admin**
+
+**Success Response (200):**
+```json
+{
+    "total_products": 150,
+    "active_products": 145,
+    "featured_products": 25,
+    "out_of_stock": 5,
+    "low_stock": 12,
+    "on_sale": 18,
+    "categories_count": 8,
+    "tags_count": 15,
+    "average_price": 35000.50,
+    "total_stock_value": 5250000.00
+}
+```
+
+#### 6. Create Product (Admin Only)
+**POST** `/api/products/`
+**Authentication Required: Admin**
+
+**Request:**
+```json
+{
+    "name_uz": "Organik pomidor",
+    "name_ru": "Органические помидоры",
+    "name_en": "Organic Tomatoes",
+    "description_uz": "Organik pomidor tavsifi",
+    "description_ru": "Описание органических помидоров",
+    "description_en": "Description of organic tomatoes",
+    "category_id": 1,
+    "tag_ids": [1, 2],
+    "price": "25000.00",
+    "sale_price": "20000.00",
+    "stock": 100,
+    "is_active": true,
+    "is_featured": true
+}
+```
+
+**Success Response (201):**
+```json
+{
+    "id": "550e8400-e29b-41d4-a716-446655440000",
+    "name": "Organic Tomatoes",
+    "slug": "organic-tomatoes",
+    "message": "Mahsulot muvaffaqiyatli yaratildi"
+}
+```
+
+### Categories API
+
+#### 1. List Categories (with Pagination)
+**GET** `/api/categories/`
+
+**Query Parameters:**
+- `page`: Page number
+- `page_size`: Items per page
+- `search`: Search in category names
+- `ordering`: Order by: created_at, name_uz
+
+**Success Response (200):**
+```json
+{
+    "count": 8,
+    "next": null,
+    "previous": null,
+    "page_size": 20,
+    "total_pages": 1,
+    "current_page": 1,
+    "results": [
+        {
+            "id": 1,
+            "name": "Vegetables",
+            "description": "Fresh organic vegetables",
+            "image": "http://localhost:8000/media/categories/vegetables.jpg",
+            "is_active": true,
+            "products_count": 45,
+            "created_at": "2025-01-15T10:30:00Z"
+        }
+    ]
+}
+```
+
+#### 2. Category Details
+**GET** `/api/categories/{id}/`
+
+**Success Response (200):**
+```json
+{
+    "id": 1,
+    "name": "Vegetables",
+    "description": "Fresh organic vegetables from local farms",
+    "image": "http://localhost:8000/media/categories/vegetables.jpg",
+    "is_active": true,
+    "products_count": 45,
+    "created_at": "2025-01-15T10:30:00Z",
+    "updated_at": "2025-01-15T12:45:00Z"
+}
+```
+
+#### 3. Category Products (with Pagination)
+**GET** `/api/categories/{id}/products/`
+
+**Query Parameters:**
+- `page`: Page number
+- `page_size`: Items per page
+- `lang`: Language (uz/ru/en)
+
+**Success Response (200):**
+```json
+{
+    "count": 45,
+    "next": "http://localhost:8000/api/categories/1/products/?page=2",
+    "previous": null,
+    "page_size": 20,
+    "total_pages": 3,
+    "current_page": 1,
+    "results": [...]
+}
+```
+
+### Tags API
+
+#### 1. List Tags (with Pagination)
+**GET** `/api/tags/`
+
+**Query Parameters:**
+- `page`: Page number
+- `page_size`: Items per page
+- `search`: Search in tag names
+
+**Success Response (200):**
+```json
+{
+    "count": 15,
+    "next": null,
+    "previous": null,
+    "page_size": 20,
+    "total_pages": 1,
+    "current_page": 1,
+    "results": [
+        {
+            "id": 1,
+            "name": "Organic",
+            "description": "Certified organic products",
+            "color": "#28a745",
+            "products_count": 120,
+            "created_at": "2025-01-15T10:30:00Z"
+        }
+    ]
+}
+```
+
+## Cart API
+
+### Cart Features
+- **Session-based:** Works for both authenticated and anonymous users
+- **Real-time Updates:** Automatic price calculations
+- **Stock Validation:** Prevents overselling
+- **History Tracking:** Complete action history
+
+### Cart Endpoints
+
+#### 1. Get Current Cart
+**GET** `/api/cart/current/`
+
+**Headers (for anonymous users):**
+```
+X-Session-Key: anonymous-session-key-123
+```
+
+**Success Response (200):**
+```json
+{
+    "id": 1,
+    "user": null,
+    "session_key": "anonymous-session-key-123",
+    "items": [
+        {
+            "id": 1,
+            "product": {
+                "id": "550e8400-e29b-41d4-a716-446655440000",
+                "name": "Organic Tomatoes",
+                "price": "25000.00",
+                "sale_price": "20000.00",
+                "final_price": "20000.00",
+                "stock": 100,
+                "image": "http://localhost:8000/media/products/tomatoes.jpg"
+            },
+            "quantity": 2,
+            "unit_price": "20000.00",
+            "total_price": "40000.00",
+            "added_at": "2025-01-15T12:45:00Z"
+        }
+    ],
+    "total_items": 2,
+    "total_price": "40000.00",
+    "items_count": 1,
+    "is_empty": false,
+    "created_at": "2025-01-15T12:00:00Z",
+    "updated_at": "2025-01-15T12:45:00Z",
+    "message": "Joriy savat"
+}
+```
+
+#### 2. Add Item to Cart
+**POST** `/api/cart/add_item/`
+
+**Request:**
+```json
+{
+    "product_id": "550e8400-e29b-41d4-a716-446655440000",
+    "quantity": 2
+}
+```
+
+**Success Response (201):**
+```json
+{
+    "message": "Mahsulot savatga qo'shildi",
+    "item": {
+        "id": 1,
+        "product": {
+            "id": "550e8400-e29b-41d4-a716-446655440000",
+            "name": "Organic Tomatoes",
+            "price": "25000.00",
+            "sale_price": "20000.00",
+            "final_price": "20000.00"
+        },
+        "quantity": 2,
+        "unit_price": "20000.00",
+        "total_price": "40000.00"
+    },
+    "cart_summary": {
+        "total_items": 2,
+        "total_price": "40000.00",
+        "items_count": 1
+    }
+}
+```
+
+#### 3. Update Cart Item
+**PATCH** `/api/cart/update_item/`
+
+**Request:**
+```json
+{
+    "item_id": 1,
+    "quantity": 3
+}
+```
+
+**Success Response (200):**
+```json
+{
+    "message": "Mahsulot miqdori yangilandi",
+    "item": {
+        "id": 1,
+        "quantity": 3,
+        "total_price": "60000.00"
+    },
+    "cart_summary": {
+        "total_items": 3,
+        "total_price": "60000.00",
+        "items_count": 1
+    }
+}
+```
+
+#### 4. Remove Item from Cart
+**DELETE** `/api/cart/remove_item/?item_id=1`
+
+**Success Response (200):**
+```json
+{
+    "message": "Mahsulot savatdan o'chirildi",
+    "cart_summary": {
+        "total_items": 0,
+        "total_price": "0.00",
+        "items_count": 0
+    }
+}
+```
+
+#### 5. Clear Cart
+**DELETE** `/api/cart/clear/`
+
+**Success Response (200):**
+```json
+{
+    "message": "Savat tozalandi",
+    "cart_summary": {
+        "total_items": 0,
+        "total_price": 0.0,
+        "items_count": 0
+    }
+}
+```
+
+#### 6. Cart Summary
+**GET** `/api/cart/summary/`
+
+**Success Response (200):**
+```json
+{
+    "total_items": 3,
+    "total_price": "60000.00",
+    "items_count": 1,
+    "is_empty": false,
+    "subtotal": "75000.00",
+    "total_discount": "15000.00",
+    "items_summary": [
+        {
+            "product_name": "Organic Tomatoes",
+            "quantity": 3,
+            "unit_price": 20000.0,
+            "total_price": 60000.0,
+            "is_on_sale": true
+        }
+    ]
+}
+```
+
+#### 7. Cart History
+**GET** `/api/cart/history/`
+
+**Success Response (200):**
+```json
+{
+    "history": [
+        {
+            "id": 1,
+            "action": "add",
+            "product_name": "Organic Tomatoes",
+            "quantity": 2,
+            "timestamp": "2025-01-15T12:45:00Z",
+            "user_agent": "Mozilla/5.0...",
+            "ip_address": "127.0.0.1"
+        }
+    ],
+    "count": 1
+}
+```
+
+## Error Handling
+
+### Error Response Format
+```json
+{
+    "error": "Error message",
+    "detail": "Detailed error description",
+    "field_errors": {
+        "field_name": ["Field-specific error message"]
+    },
+    "status_code": 400
+}
+```
+
+### Common HTTP Status Codes
+- **200 OK:** Successful GET/PUT/PATCH
+- **201 Created:** Successful POST
+- **204 No Content:** Successful DELETE
+- **400 Bad Request:** Invalid request data
+- **401 Unauthorized:** Authentication required
+- **403 Forbidden:** Permission denied
+- **404 Not Found:** Resource not found
+- **429 Too Many Requests:** Rate limit exceeded
+- **500 Internal Server Error:** Server error
+
+### Validation Errors
+```json
+{
+    "username": ["Bu foydalanuvchi nomi allaqachon band."],
+    "password": ["Parol kamida 8 ta belgidan iborat bo'lishi kerak."],
+    "email": ["Yaroqli email manzil kiriting."]
+}
+```
+
+## Rate Limiting
+
+### Throttling Rates
+- **Anonymous Users:** 2000 requests/hour
+- **Authenticated Users:** 10000 requests/hour
+- **Auth Endpoints:** 30 requests/minute
+- **Burst Protection:** 200 requests/minute
+
+### Throttling Headers
+```
+X-RateLimit-Limit: 2000
+X-RateLimit-Remaining: 1995
+X-RateLimit-Reset: 1642291200
+```
+
+## CORS Configuration
+
+### Allowed Origins
+- `http://localhost:3000`
+- `http://127.0.0.1:3000`
+- `https://your-frontend-domain.com`
+
+### Allowed Headers
+- `Authorization`
+- `Content-Type`
+- `X-Session-Key`
+- `Accept`
+- `Origin`
+
+## JavaScript Integration Examples
+
+### 1. API Client Setup
+```javascript
+class OrganicGreenAPI {
+    constructor(baseURL = 'http://localhost:8000/api') {
+        this.baseURL = baseURL;
+        this.accessToken = localStorage.getItem('access_token');
+        this.refreshToken = localStorage.getItem('refresh_token');
+        this.sessionKey = localStorage.getItem('session_key') || this.generateSessionKey();
+    }
+    
+    generateSessionKey() {
+        const sessionKey = 'session_' + Math.random().toString(36).substr(2, 9);
+        localStorage.setItem('session_key', sessionKey);
+        return sessionKey;
+    }
+    
+    async request(endpoint, options = {}) {
+        const url = `${this.baseURL}${endpoint}`;
+        const headers = {
+            'Content-Type': 'application/json',
+            'X-Session-Key': this.sessionKey,
+            ...options.headers
+        };
+        
+        if (this.accessToken) {
+            headers['Authorization'] = `Bearer ${this.accessToken}`;
+        }
+        
+        const response = await fetch(url, {
+            ...options,
+            headers
+        });
+        
+        if (response.status === 401 && this.refreshToken) {
+            const refreshed = await this.refreshAccessToken();
+            if (refreshed) {
+                headers['Authorization'] = `Bearer ${this.accessToken}`;
+                return fetch(url, { ...options, headers });
+            }
+        }
+        
+        return response;
+    }
+    
+    async refreshAccessToken() {
+        try {
+            const response = await fetch(`${this.baseURL}/auth/token/refresh/`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ refresh: this.refreshToken })
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                this.accessToken = data.access;
+                localStorage.setItem('access_token', data.access);
+                return true;
+            }
+        } catch (error) {
+            console.error('Token refresh failed:', error);
+        }
+        
+        this.logout();
+        return false;
+    }
+    
+    logout() {
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
+        this.accessToken = null;
+        this.refreshToken = null;
+    }
+}
+```
+
+### 2. Authentication Examples
+```javascript
+const api = new OrganicGreenAPI();
+
+// Register user
+async function register(userData) {
+    try {
+        const response = await api.request('/auth/register/', {
+            method: 'POST',
+            body: JSON.stringify(userData)
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            localStorage.setItem('access_token', data.tokens.access);
+            localStorage.setItem('refresh_token', data.tokens.refresh);
+            return data;
+        }
+    } catch (error) {
+        console.error('Registration failed:', error);
+    }
+}
+
+// Login user
+async function login(credentials) {
+    try {
+        const response = await api.request('/auth/login/', {
+            method: 'POST',
+            body: JSON.stringify(credentials)
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            localStorage.setItem('access_token', data.tokens.access);
+            localStorage.setItem('refresh_token', data.tokens.refresh);
+            api.accessToken = data.tokens.access;
+            api.refreshToken = data.tokens.refresh;
+            return data;
+        }
+    } catch (error) {
+        console.error('Login failed:', error);
+    }
+}
+```
+
+### 3. Products with Pagination
+```javascript
+// Get products with pagination
+async function getProducts(page = 1, filters = {}) {
+    const params = new URLSearchParams({
+        page: page,
+        page_size: 20,
+        ...filters
+    });
+    
+    try {
+        const response = await api.request(`/products/?${params}`);
+        if (response.ok) {
+            return await response.json();
+        }
+    } catch (error) {
+        console.error('Failed to fetch products:', error);
+    }
+}
+
+// Usage example
+const productsData = await getProducts(1, {
+    category: 1,
+    featured: true,
+    lang: 'en'
+});
+
+console.log(`Total products: ${productsData.count}`);
+console.log(`Current page: ${productsData.current_page}`);
+console.log(`Total pages: ${productsData.total_pages}`);
+console.log('Products:', productsData.results);
+```
+
+### 4. Cart Operations
+```javascript
+// Add item to cart
+async function addToCart(productId, quantity) {
+    try {
+        const response = await api.request('/cart/add_item/', {
+            method: 'POST',
+            body: JSON.stringify({
+                product_id: productId,
+                quantity: quantity
+            })
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            console.log(data.message);
+            return data;
+        }
+    } catch (error) {
+        console.error('Failed to add to cart:', error);
+    }
+}
+
+// Get current cart
+async function getCurrentCart() {
+    try {
+        const response = await api.request('/cart/current/');
+        if (response.ok) {
+            return await response.json();
+        }
+    } catch (error) {
+        console.error('Failed to get cart:', error);
+    }
+}
+
+// Update cart item
+async function updateCartItem(itemId, quantity) {
+    try {
+        const response = await api.request('/cart/update_item/', {
+            method: 'PATCH',
+            body: JSON.stringify({
+                item_id: itemId,
+                quantity: quantity
+            })
+        });
+        
+        if (response.ok) {
+            return await response.json();
+        }
+    } catch (error) {
+        console.error('Failed to update cart item:', error);
+    }
+}
+```
+
+### 5. Pagination Component
+```javascript
+class PaginationComponent {
+    constructor(containerId, onPageChange) {
+        this.container = document.getElementById(containerId);
+        this.onPageChange = onPageChange;
+    }
+    
+    render(paginationData) {
+        const { current_page, total_pages, next, previous } = paginationData;
+        
+        let html = '<div class="pagination">';
+        
+        // Previous button
+        if (previous) {
+            html += `<button onclick="this.onPageChange(${current_page - 1})" class="page-btn">Previous</button>`;
+        }
+        
+        // Page numbers
+        for (let i = 1; i <= total_pages; i++) {
+            const activeClass = i === current_page ? 'active' : '';
+            html += `<button onclick="this.onPageChange(${i})" class="page-btn ${activeClass}">${i}</button>`;
+        }
+        
+        // Next button
+        if (next) {
+            html += `<button onclick="this.onPageChange(${current_page + 1})" class="page-btn">Next</button>`;
+        }
+        
+        html += '</div>';
+        this.container.innerHTML = html;
+    }
+}
+
+// Usage
+const pagination = new PaginationComponent('pagination-container', async (page) => {
+    const products = await getProducts(page);
+    renderProducts(products.results);
+    pagination.render(products);
+});
+```
+
+## Testing Endpoints
+
+### Health Check
+**GET** `/api/health/`
+```json
+{
+    "status": "healthy",
+    "timestamp": "2025-01-15T12:45:00Z",
+    "version": "1.0.0",
+    "message": "Products API is running successfully"
+}
+```
+
+### API Documentation
+**GET** `/api/`
+Returns complete API documentation in JSON format.
+
+## Production Considerations
+
+### Security
+- HTTPS only in production
+- Secure cookie settings
+- CORS properly configured
+- Rate limiting enabled
+- JWT token rotation
+
+### Performance
+- Database query optimization
+- Response caching (15 minutes for product lists)
+- Image optimization
+- CDN integration recommended
+
+### Monitoring
+- API request logging
+- Error tracking
+- Performance monitoring
+- User activity analytics
+
+---
+
+**Documentation Version:** 1.0.0  
+**Last Updated:** January 15, 2025  
+**API Version:** 1.0.0
+
+For questions or support, contact the development team.

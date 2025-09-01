@@ -55,6 +55,9 @@ urlpatterns = [
     # API routes
     path('', include(router.urls)),
     
+    # Cart API
+    path('', include('apps.cart.urls')),
+    
     # API Auth (for browsable API)
     path('auth/', include('rest_framework.urls')),
 ]

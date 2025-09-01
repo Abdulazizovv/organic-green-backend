@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 from pathlib import Path
 import os
 from datetime import timedelta
+from corsheaders.defaults import default_headers
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -52,13 +53,18 @@ INSTALLED_APPS = [
     # local apps
     "apps.botapp",
     "apps.products",
+    "apps.cart",
     "api",
 ]
 
-
+CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
+]
+
+CORS_ALLOW_HEADERS = list(default_headers) + [
+    "x-session-key",
 ]
 
 
@@ -71,6 +77,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "api.middleware.CustomSessionMiddleware"
 ]
 
 ROOT_URLCONF = "core.urls"
@@ -173,12 +180,14 @@ REST_FRAMEWORK = {
         'rest_framework.renderers.BrowsableAPIRenderer',
     ],
     'DEFAULT_THROTTLE_CLASSES': [
-        'rest_framework.throttling.AnonRateThrottle',
-        'rest_framework.throttling.UserRateThrottle'
+        # Removed default throttling for better user experience
+        # Only specific views use throttling now
     ],
     'DEFAULT_THROTTLE_RATES': {
-        'anon': '100/hour',
-        'user': '1000/hour'
+        'anon': '2000/hour',    # Very high limit for anonymous users  
+        'user': '10000/hour',   # Very high limit for authenticated users
+        'auth': '30/minute',    # Moderate limit for auth endpoints (registration/login)
+        'burst': '200/minute'   # For burst protection on specific endpoints
     }
 }
 

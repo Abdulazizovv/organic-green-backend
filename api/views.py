@@ -7,6 +7,7 @@ from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly, AllowAny
 from rest_framework.throttling import UserRateThrottle, AnonRateThrottle
+from api.throttling import AuthRateThrottle, LenientAnonRateThrottle
 from rest_framework.pagination import PageNumberPagination
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -42,7 +43,7 @@ class SimpleUserRegistrationView(generics.CreateAPIView):
     queryset = User.objects.all()
     serializer_class = SimpleUserRegistrationSerializer
     permission_classes = [AllowAny]
-    throttle_classes = [AnonRateThrottle]
+    throttle_classes = [AuthRateThrottle]  # Use auth throttle for registration
     
     def create(self, request, *args, **kwargs):
         """Create user and return tokens"""
@@ -82,7 +83,7 @@ class UserRegistrationView(generics.CreateAPIView):
     queryset = User.objects.all()
     serializer_class = UserRegistrationSerializer
     permission_classes = [AllowAny]
-    throttle_classes = [AnonRateThrottle]
+    throttle_classes = [AuthRateThrottle]  # Use auth throttle for registration
     
     def create(self, request, *args, **kwargs):
         """Create user and return tokens"""
@@ -121,7 +122,7 @@ class UserLoginView(generics.GenericAPIView):
     """
     serializer_class = UserLoginSerializer
     permission_classes = [AllowAny]
-    throttle_classes = [AnonRateThrottle]
+    throttle_classes = [AuthRateThrottle]  # Use auth throttle for login
     
     def post(self, request, *args, **kwargs):
         """Authenticate user and return tokens"""
@@ -459,7 +460,7 @@ class ProductViewSet(viewsets.ModelViewSet):
     
     permission_classes = [IsAuthenticatedOrReadOnly]
     pagination_class = StandardResultsSetPagination
-    throttle_classes = [UserRateThrottle, AnonRateThrottle]
+    # throttle_classes = [UserRateThrottle, AnonRateThrottle]  # Removed throttling for better UX
     
     def get_queryset(self):
         """Optimized queryset with proper prefetching"""
@@ -485,6 +486,32 @@ class ProductViewSet(viewsets.ModelViewSet):
         context = super().get_serializer_context()
         context['language'] = self.request.query_params.get('lang', 'uz')
         return context
+    
+    def get_object(self):
+        """
+        Override get_object to support both UUID and slug lookup
+        """
+        queryset = self.filter_queryset(self.get_queryset())
+        lookup_url_kwarg = self.lookup_url_kwarg or self.lookup_field
+        lookup_value = self.kwargs[lookup_url_kwarg]
+        
+        # Try to get by UUID first (if it looks like a UUID)
+        try:
+            # Check if the lookup value is a valid UUID
+            import uuid
+            uuid.UUID(lookup_value)
+            # If valid UUID, filter by ID
+            filter_kwargs = {self.lookup_field: lookup_value}
+        except (ValueError, AttributeError):
+            # If not a UUID, assume it's a slug
+            filter_kwargs = {'slug': lookup_value}
+        
+        obj = get_object_or_404(queryset, **filter_kwargs)
+        
+        # May raise a permission denied
+        self.check_object_permissions(self.request, obj)
+        
+        return obj
     
     def list(self, request, *args, **kwargs):
         """Enhanced list view with caching"""
