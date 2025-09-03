@@ -3,11 +3,13 @@ Cart API Serializers
 Professional-grade serializers for cart functionality
 """
 from rest_framework import serializers
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.db import transaction
 from apps.products.models import Product
 from .models import Cart, CartItem, CartHistory
 
+
+User = get_user_model()
 
 # Simple product serializer for cart items
 class CartProductSerializer(serializers.ModelSerializer):
@@ -187,7 +189,7 @@ class CartSerializer(serializers.ModelSerializer):
             }
         return {
             'type': 'anonymous',
-            'session_key': obj.session_key[:8] + '...' if obj.session_key else None
+            'session_key': obj.session_key if obj.session_key else None
         }
 
 

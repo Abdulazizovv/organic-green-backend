@@ -2,7 +2,7 @@
 Comprehensive tests for Products API
 """
 from django.test import TestCase
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.urls import reverse
 from rest_framework.test import APITestCase, APIClient
 from rest_framework import status
@@ -10,6 +10,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from apps.products.models import Product, ProductCategory, ProductTag
 from decimal import Decimal
 
+User = get_user_model()
 
 class ProductAPITestCase(APITestCase):
     """Test cases for Product API"""

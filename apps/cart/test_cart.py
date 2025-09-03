@@ -2,7 +2,7 @@
 Test cases for Cart API
 """
 from django.test import TestCase
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.urls import reverse
 from rest_framework.test import APITestCase
 from rest_framework import status
@@ -12,6 +12,7 @@ from apps.cart.models import Cart, CartItem
 from decimal import Decimal
 import uuid
 
+User = get_user_model()
 
 class CartAPITestCase(APITestCase):
     """Test cases for cart endpoints"""

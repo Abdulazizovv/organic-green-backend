@@ -8,7 +8,10 @@ django.setup()
 
 from apps.products.models import Product, ProductCategory
 from apps.cart.models import Cart, CartItem
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
+
+
+User = get_user_model()
 
 print("=== Cart Model Test ===")
 

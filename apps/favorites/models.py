@@ -2,9 +2,10 @@
 Favorites models for Organic Green e-commerce
 """
 from django.db import models
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from apps.products.models import Product
 
+User = get_user_model()
 
 class Favorite(models.Model):
     """

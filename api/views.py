@@ -16,7 +16,7 @@ from django.db.models import Q, Count, Avg, Sum, F
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.core.cache import cache
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from apps.products.models import Product, ProductCategory, ProductTag
 from .serializers import (
     # Authentication serializers
@@ -30,6 +30,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+User = get_user_model()
 
 # Authentication Views
 

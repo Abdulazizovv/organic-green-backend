@@ -7,7 +7,7 @@ from rest_framework_simplejwt.views import (
     TokenRefreshView,
     TokenVerifyView,
 )
-from .views import (
+from api.views import (
     # Authentication views
     SimpleUserRegistrationView,
     UserRegistrationView,
@@ -60,6 +60,9 @@ urlpatterns = [
     
     # Favorites API
     path('', include('apps.favorites.urls')),
+    
+    # Order API
+    path('', include('apps.order.urls')),
     
     # API Auth (for browsable API)
     path('auth/', include('rest_framework.urls')),

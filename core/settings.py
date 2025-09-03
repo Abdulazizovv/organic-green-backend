@@ -51,11 +51,13 @@ INSTALLED_APPS = [
     "rest_framework_simplejwt.token_blacklist",
     "django_filters",
     # local apps
+    "api",
+    "accounts",
     "apps.botapp",
     "apps.products",
     "apps.cart",
     "apps.favorites",
-    "api",
+    "apps.order",
 ]
 
 CORS_ALLOW_CREDENTIALS = True
@@ -220,3 +222,5 @@ SIMPLE_JWT = {
     "SLIDING_TOKEN_LIFETIME": timedelta(minutes=5),
     "SLIDING_TOKEN_REFRESH_LIFETIME": timedelta(days=1),
 }
+
+AUTH_USER_MODEL = "accounts.User"

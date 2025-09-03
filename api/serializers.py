@@ -4,13 +4,16 @@ Professional-grade serializers with validation and optimization
 """
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.contrib.auth import authenticate
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 from apps.products.models import Product, ProductCategory, ProductTag, ProductImage
 from django.db.models import Avg, Count
 import re
+
+
+User = get_user_model()
 
 
 # Authentication Serializers
