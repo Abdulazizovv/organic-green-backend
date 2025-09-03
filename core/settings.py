@@ -54,6 +54,7 @@ INSTALLED_APPS = [
     "apps.botapp",
     "apps.products",
     "apps.cart",
+    "apps.favorites",
     "api",
 ]
 

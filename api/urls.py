@@ -58,6 +58,9 @@ urlpatterns = [
     # Cart API
     path('', include('apps.cart.urls')),
     
+    # Favorites API
+    path('', include('apps.favorites.urls')),
+    
     # API Auth (for browsable API)
     path('auth/', include('rest_framework.urls')),
 ]
