@@ -111,7 +111,7 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         """Validate email"""
         if User.objects.filter(email=value).exists():
             raise serializers.ValidationError(
-                "Bu email allaqachon ro'yxatdan o'tgan."
+                "Bu email allaqon ro'yxatdan o'tgan."
             )
         return value
         
@@ -194,61 +194,180 @@ class UserLoginSerializer(serializers.Serializer):
 
 
 class UserProfileSerializer(serializers.ModelSerializer):
-    """Serializer for user profile"""
+    """Serializer for user profile with custom User model fields"""
     
-    full_name = serializers.SerializerMethodField()
+    full_name = serializers.CharField(read_only=True)
+    display_name = serializers.CharField(read_only=True)
     date_joined = serializers.DateTimeField(read_only=True)
     last_login = serializers.DateTimeField(read_only=True)
+    avatar_url = serializers.SerializerMethodField()
     
     class Meta:
         model = User
         fields = [
             'id', 'username', 'email', 'first_name', 'last_name',
-            'full_name', 'is_active', 'date_joined', 'last_login'
+            'full_name', 'display_name', 'phone', 'avatar', 'avatar_url',
+            'is_verified', 'is_active', 'is_staff', 'date_joined', 'last_login'
         ]
-        read_only_fields = ['id', 'username', 'is_active', 'date_joined', 'last_login']
+        read_only_fields = [
+            'id', 'username', 'is_active', 'is_staff', 'date_joined', 'last_login',
+            'full_name', 'display_name', 'avatar_url'
+        ]
         
-    def get_full_name(self, obj):
-        """Get user's full name"""
-        return f"{obj.first_name} {obj.last_name}".strip()
+    def get_avatar_url(self, obj):
+        """Get full URL for avatar image"""
+        if obj.avatar and hasattr(obj.avatar, 'url'):
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.avatar.url)
+            return obj.avatar.url
+        return None
         
     def validate_email(self, value):
         """Validate email during update"""
         user = self.instance
         if user and User.objects.filter(email=value).exclude(id=user.id).exists():
             raise serializers.ValidationError(
-                "A user with this email already exists."
+                "Bu email allaqon ro'yxatdan o'tgan."
             )
         return value
+        
+    def validate_phone(self, value):
+        """Validate phone number"""
+        if value and not value.startswith('+'):
+            raise serializers.ValidationError(
+                "Telefon raqam '+' belgisi bilan boshlanishi kerak."
+            )
+        if value and len(value) < 10:
+            raise serializers.ValidationError(
+                "Telefon raqam kamida 10 ta belgidan iborat bo'lishi kerak."
+            )
+        return value
+
+
+class UserRegistrationSerializer(serializers.ModelSerializer):
+    """Enhanced user registration serializer with custom User model fields"""
+    
+    password = serializers.CharField(
+        write_only=True,
+        min_length=6,
+        help_text="Parol kamida 6 ta belgidan iborat bo'lishi kerak"
+    )
+    password_confirm = serializers.CharField(
+        write_only=True,
+        help_text="Parolni tasdiqlang"
+    )
+    email = serializers.EmailField(required=True)
+    first_name = serializers.CharField(required=False, max_length=150, allow_blank=True)
+    last_name = serializers.CharField(required=False, max_length=150, allow_blank=True)
+    phone = serializers.CharField(required=False, max_length=30, allow_blank=True)
+    
+    class Meta:
+        model = User
+        fields = [
+            'id', 'username', 'email', 'first_name', 'last_name',
+            'phone', 'password', 'password_confirm'
+        ]
+        read_only_fields = ['id']
+        
+    def validate_username(self, value):
+        """Validate username"""
+        if len(value) < 3:
+            raise serializers.ValidationError(
+                "Foydalanuvchi nomi kamida 3 ta belgidan iborat bo'lishi kerak."
+            )
+        
+        if not re.match(r'^[a-zA-Z0-9_]+$', value):
+            raise serializers.ValidationError(
+                "Foydalanuvchi nomida faqat harflar, raqamlar va pastki chiziq bo'lishi mumkin."
+            )
+            
+        if User.objects.filter(username=value).exists():
+            raise serializers.ValidationError(
+                "Bu foydalanuvchi nomi allaqachon band."
+            )
+            
+        return value
+        
+    def validate_email(self, value):
+        """Validate email"""
+        if User.objects.filter(email=value).exists():
+            raise serializers.ValidationError(
+                "Bu email allaqon ro'yxatdan o'tgan."
+            )
+        return value
+        
+    def validate_phone(self, value):
+        """Validate phone number"""
+        if value and not value.startswith('+'):
+            raise serializers.ValidationError(
+                "Telefon raqam '+' belgisi bilan boshlanishi kerak."
+            )
+        if value and len(value) < 10:
+            raise serializers.ValidationError(
+                "Telefon raqam kamida 10 ta belgidan iborat bo'lishi kerak."
+            )
+        return value
+        
+    def validate_password(self, value):
+        """Validate password"""
+        if len(value) < 6:
+            raise serializers.ValidationError(
+                "Parol kamida 6 ta belgidan iborat bo'lishi kerak."
+            )
+        return value
+        
+    def validate(self, attrs):
+        """Validate password confirmation"""
+        if attrs['password'] != attrs['password_confirm']:
+            raise serializers.ValidationError({
+                'password_confirm': 'Parollar mos kelmaydi.'
+            })
+        return attrs
+        
+    def create(self, validated_data):
+        """Create new user with custom fields"""
+        validated_data.pop('password_confirm')
+        
+        # Set default values for optional fields
+        if not validated_data.get('first_name'):
+            validated_data['first_name'] = ''
+        if not validated_data.get('last_name'):
+            validated_data['last_name'] = ''
+        if not validated_data.get('phone'):
+            validated_data['phone'] = ''
+            
+        user = User.objects.create_user(**validated_data)
+        return user
 
 
 class ChangePasswordSerializer(serializers.Serializer):
     """Serializer for changing password"""
     
     old_password = serializers.CharField(required=True, write_only=True)
-    new_password = serializers.CharField(required=True, write_only=True, min_length=8)
+    new_password = serializers.CharField(required=True, write_only=True, min_length=6)
     new_password_confirm = serializers.CharField(required=True, write_only=True)
     
     def validate_old_password(self, value):
         """Validate old password"""
         user = self.context['request'].user
         if not user.check_password(value):
-            raise serializers.ValidationError('Old password is incorrect.')
+            raise serializers.ValidationError('Eski parol noto\'g\'ri.')
         return value
         
     def validate_new_password(self, value):
         """Validate new password"""
-        try:
-            validate_password(value)
-        except ValidationError as e:
-            raise serializers.ValidationError(list(e.messages))
+        if len(value) < 6:
+            raise serializers.ValidationError(
+                "Yangi parol kamida 6 ta belgidan iborat bo'lishi kerak."
+            )
         return value
         
     def validate(self, attrs):
         """Validate password confirmation"""
         if attrs['new_password'] != attrs['new_password_confirm']:
             raise serializers.ValidationError({
-                'new_password_confirm': 'New password fields do not match.'
+                'new_password_confirm': 'Yangi parollar mos kelmaydi.'
             })
         return attrs
         
@@ -270,7 +389,10 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         # Add custom claims
         token['username'] = user.username
         token['email'] = user.email
-        token['full_name'] = f"{user.first_name} {user.last_name}".strip()
+        token['full_name'] = user.full_name
+        token['phone'] = user.phone or ''
+        token['is_verified'] = user.is_verified
+        token['is_staff'] = user.is_staff
         
         return token
         
@@ -290,9 +412,35 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         data = super().validate(attrs)
         
         # Add user data to response
-        data['user'] = UserProfileSerializer(self.user).data
+        data['user'] = UserProfileSerializer(self.user, context={'request': self.context.get('request')}).data
         
         return data
+
+
+class AvatarUploadSerializer(serializers.ModelSerializer):
+    """Serializer for avatar upload"""
+    
+    class Meta:
+        model = User
+        fields = ['avatar']
+        
+    def validate_avatar(self, value):
+        """Validate avatar file"""
+        if value:
+            # Check file size (max 5MB)
+            if value.size > 5 * 1024 * 1024:
+                raise serializers.ValidationError(
+                    "Rasm hajmi 5MB dan oshmasligi kerak."
+                )
+            
+            # Check file type
+            allowed_types = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
+            if value.content_type not in allowed_types:
+                raise serializers.ValidationError(
+                    "Faqat JPEG, PNG, GIF, WEBP formatidagi rasmlar qabul qilinadi."
+                )
+        
+        return value
 
 
 # Product Serializers

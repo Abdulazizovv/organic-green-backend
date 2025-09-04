@@ -16,6 +16,10 @@ from api.views import (
     UserProfileView,
     ChangePasswordView,
     UserLogoutView,
+    AvatarUploadView,
+    DeleteAvatarView,
+    VerifyAccountView,
+    UserStatsView,
     check_auth_status,
     auth_info,
     # Product views
@@ -47,9 +51,14 @@ urlpatterns = [
     path('auth/token/', CustomTokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('auth/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('auth/token/verify/', TokenVerifyView.as_view(), name='token_verify'),
-    path('auth/profile/', UserProfileView.as_view(), name='auth-profile'),
-    path('auth/change-password/', ChangePasswordView.as_view(), name='auth-change-password'),
-    path('auth/logout/', UserLogoutView.as_view(), name='auth-logout'),
+    # User Profile Management
+    path('auth/profile/', UserProfileView.as_view(), name='user_profile'),
+    path('auth/change-password/', ChangePasswordView.as_view(), name='change_password'),
+    path('auth/upload-avatar/', AvatarUploadView.as_view(), name='upload_avatar'),
+    path('auth/delete-avatar/', DeleteAvatarView.as_view(), name='delete_avatar'),
+    path('auth/verify/', VerifyAccountView.as_view(), name='verify_account'),
+    path('auth/stats/', UserStatsView.as_view(), name='user_stats'),
+    path('auth/logout/', UserLogoutView.as_view(), name='user_logout'),
     path('auth/status/', check_auth_status, name='auth-status'),
     
     # API routes

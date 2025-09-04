@@ -21,7 +21,7 @@ from apps.products.models import Product, ProductCategory, ProductTag
 from .serializers import (
     # Authentication serializers
     SimpleUserRegistrationSerializer, UserRegistrationSerializer, UserLoginSerializer, UserProfileSerializer,
-    ChangePasswordSerializer, CustomTokenObtainPairSerializer,
+    ChangePasswordSerializer, CustomTokenObtainPairSerializer, AvatarUploadSerializer,
     # Product serializers
     ProductListSerializer, ProductDetailSerializer, ProductCreateUpdateSerializer,
     ProductCategorySerializer, ProductTagSerializer, ProductStatsSerializer
@@ -173,6 +173,12 @@ class UserProfileView(generics.RetrieveUpdateAPIView):
     def get_object(self):
         """Return current authenticated user"""
         return self.request.user
+        
+    def get_serializer_context(self):
+        """Add request to serializer context"""
+        context = super().get_serializer_context()
+        context['request'] = self.request
+        return context
         
     def update(self, request, *args, **kwargs):
         """Update user profile"""
@@ -664,6 +670,136 @@ class ProductViewSet(viewsets.ModelViewSet):
         serializer = ProductStatsSerializer(stats)
         return Response(serializer.data)
 
+
+# User Management Views
+
+class AvatarUploadView(generics.UpdateAPIView):
+    """
+    Avatar upload endpoint
+    
+    Upload or update user's profile avatar image.
+    """
+    serializer_class = AvatarUploadSerializer
+    permission_classes = [IsAuthenticated]
+    
+    def get_object(self):
+        """Return current authenticated user"""
+        return self.request.user
+        
+    def update(self, request, *args, **kwargs):
+        """Upload avatar"""
+        response = super().update(request, *args, **kwargs)
+        
+        if response.status_code == 200:
+            user = self.get_object()
+            user_data = UserProfileSerializer(user, context={'request': request}).data
+            
+            logger.info(f"Avatar uploaded for user: {request.user.username}")
+            
+            return Response({
+                'message': 'Avatar muvaffaqiyatli yuklandi',
+                'user': user_data
+            }, status=status.HTTP_200_OK)
+            
+        return response
+
+
+class DeleteAvatarView(generics.GenericAPIView):
+    """
+    Delete avatar endpoint
+    
+    Remove user's profile avatar image.
+    """
+    permission_classes = [IsAuthenticated]
+    
+    def delete(self, request, *args, **kwargs):
+        """Delete user avatar"""
+        user = request.user
+        
+        if user.avatar and user.avatar.name != 'avatars/default.png':
+            user.avatar.delete()
+            user.avatar = 'avatars/default.png'
+            user.save(update_fields=['avatar'])
+            
+        user_data = UserProfileSerializer(user, context={'request': request}).data
+        
+        logger.info(f"Avatar deleted for user: {request.user.username}")
+        
+        return Response({
+            'message': 'Avatar o\'chirildi',
+            'user': user_data
+        }, status=status.HTTP_200_OK)
+
+
+class VerifyAccountView(generics.GenericAPIView):
+    """
+    Account verification endpoint
+    
+    Verify user account (admin only feature for now).
+    """
+    permission_classes = [IsAuthenticated]
+    
+    def post(self, request, *args, **kwargs):
+        """Verify user account"""
+        user = request.user
+        
+        # For now, auto-verify. In production, you might want to implement
+        # email verification or admin approval
+        user.is_verified = True
+        user.save(update_fields=['is_verified'])
+        
+        user_data = UserProfileSerializer(user, context={'request': request}).data
+        
+        logger.info(f"Account verified for user: {request.user.username}")
+        
+        return Response({
+            'message': 'Hisob tasdiqlandi',
+            'user': user_data
+        }, status=status.HTTP_200_OK)
+
+
+class UserStatsView(generics.GenericAPIView):
+    """
+    User statistics endpoint
+    
+    Get user's order and activity statistics.
+    """
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request, *args, **kwargs):
+        """Get user statistics"""
+        user = request.user
+        
+        # Import here to avoid circular imports
+        from apps.order.models import Order
+        from apps.cart.models import Cart
+        from apps.favorites.models import Favorite
+        
+        stats = {
+            'total_orders': Order.objects.filter(user=user).count(),
+            'pending_orders': Order.objects.filter(user=user, status='pending').count(),
+            'completed_orders': Order.objects.filter(user=user, status='delivered').count(),
+            'cart_items': 0,
+            'favorites_count': 0,
+            'is_verified': user.is_verified,
+            'account_age_days': (timezone.now() - user.date_joined).days,
+        }
+        
+        # Get cart items count
+        try:
+            cart = Cart.objects.get(user=user)
+            stats['cart_items'] = cart.total_items
+        except Cart.DoesNotExist:
+            pass
+            
+        # Get favorites count
+        stats['favorites_count'] = Favorite.objects.filter(user=user).count()
+        
+        return Response({
+            'message': 'Foydalanuvchi statistikasi',
+            'stats': stats
+        }, status=status.HTTP_200_OK)
+    
 
 @api_view(['GET'])
 @permission_classes([])
