@@ -58,6 +58,7 @@ INSTALLED_APPS = [
     "apps.cart",
     "apps.favorites",
     "apps.order",
+    "apps.franchise",
 ]
 
 CORS_ALLOW_CREDENTIALS = True

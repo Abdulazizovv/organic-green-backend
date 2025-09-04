@@ -73,6 +73,9 @@ urlpatterns = [
     # Order API
     path('', include('apps.order.urls')),
     
+    # Franchise API
+    path('franchise/', include('apps.franchise.urls')),
+    
     # API Auth (for browsable API)
     path('auth/', include('rest_framework.urls')),
 ]
