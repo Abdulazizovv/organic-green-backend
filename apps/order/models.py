@@ -136,6 +136,11 @@ class Order(models.Model):
         default=0,
         help_text="Total quantity of items"
     )
+    notification_sent = models.BooleanField(
+        default=False,
+        editable=False,
+        help_text="Adminlarga telegram xabari yuborilganmi"
+    )
     
     # Timestamps
     created_at = models.DateTimeField(auto_now_add=True)
@@ -145,6 +150,7 @@ class Order(models.Model):
         ordering = ['-created_at']
         verbose_name = 'Buyurtma'
         verbose_name_plural = 'Buyurtmalar'
+        db_table = 'order_order'
         indexes = [
             models.Index(fields=['order_number']),
             models.Index(fields=['user', 'created_at']),
