@@ -2,7 +2,7 @@
 import asyncio
 import logging
 from decimal import Decimal
-from typing import Iterable
+from typing import Iterable, Optional
 import aiohttp
 from django.db import transaction
 from django.db.models import F
@@ -14,6 +14,17 @@ from .models import Order
 logger = logging.getLogger(__name__)
 
 API_URL = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
+
+STATUS_MESSAGES = {
+    'pending': "⏳ Buyurtmangiz qabul qilindi va tasdiqlash jarayonida.",
+    'paid': "💳 To'lovingiz qabul qilindi. Rahmat! Buyurtma tayyorlanishga yuborildi.",
+    'processing': "🛠 Buyurtmangiz hozir tayyorlanmoqda.",
+    'shipped': "🚚 Buyurtmangiz jo'natildi. Tez orada yetib boradi.",
+    'delivered': "✅ Buyurtmangiz yetkazib berildi. Yaxshi foydalanishingizni tilaymiz!",
+    'canceled': "❌ Buyurtma bekor qilindi. Savollar bo'lsa murojaat qiling.",
+}
+
+CUSTOMER_HEADER_ICON = "🟢"
 
 
 def format_price(value: Decimal) -> str:
@@ -61,6 +72,18 @@ def build_order_message(order: Order) -> str:
     return '\n'.join(lines)
 
 
+def build_customer_status_message(order: Order) -> str:
+    base = [
+        f"{CUSTOMER_HEADER_ICON} Buyurtma: {order.order_number}",
+        STATUS_MESSAGES.get(order.status, "Holat yangilandi"),
+        f"Holat: {order.get_status_display() if hasattr(order, 'get_status_display') else order.status}" ,
+        f"Umumiy summa: {format_price(order.total_price)}",
+    ]
+    if order.status in ('pending', 'paid'):
+        base.append(f"Mahsulotlar soni: {order.total_items}")
+    return '\n'.join(base)
+
+
 async def _send_messages_async(message_text: str, admins: Iterable[BotUser]):
     timeout = aiohttp.ClientTimeout(total=10)
     async with aiohttp.ClientSession(timeout=timeout) as session:
@@ -90,6 +113,23 @@ async def _send_messages_async(message_text: str, admins: Iterable[BotUser]):
                 logger.warning(f"Failed to send order notification to {admin.user_id}: {e}")
 
 
+async def _send_single_chat(message_text: str, chat_id: str | int):
+    timeout = aiohttp.ClientTimeout(total=8)
+    async with aiohttp.ClientSession(timeout=timeout) as session:
+        payload = {
+            'chat_id': chat_id,
+            'text': message_text,
+            'parse_mode': 'HTML',
+            'disable_web_page_preview': 'true'
+        }
+        try:
+            async with session.post(API_URL, data=payload) as resp:
+                if resp.status >= 400:
+                    logger.warning(f"Telegram send error {resp.status} for chat {chat_id}")
+        except Exception as e:  # noqa
+            logger.warning(f"Telegram send exception for chat {chat_id}: {e}")
+
+
 def notify_admins_new_order(order: Order):
     """Send Telegram notification to all bot admins about new order.
     Non-blocking: tries to schedule async sending on existing loop or runs its own loop.
@@ -103,3 +143,24 @@ def notify_admins_new_order(order: Order):
         asyncio.run(_send_messages_async(message, admins))
     except Exception as e:  # noqa
         logger.error(f"notify_admins_new_order error: {e}")
+
+
+def notify_customer_order_status(order: Order):
+    """Send message to customer if phone_number linked to BotUser."""
+    try:
+        print("Order: ", order.contact_phone)
+        if not order.contact_phone:
+            return
+        # Normalize phone for lookup (simple strip). Assume phone stored as raw.
+        phone_variants = [order.contact_phone.strip(), order.contact_phone]
+        # Try to match without + and spaces
+        cleaned = order.contact_phone.replace('+', '').replace(' ', '').replace('-', '')
+        phone_variants.append(cleaned)
+        from apps.botapp.models import BotUser
+        bot_user = BotUser.objects.filter(phone_number__in=phone_variants).order_by('-updated_at').first()
+        if not bot_user:
+            return
+        message = build_customer_status_message(order)
+        asyncio.run(_send_single_chat(message, bot_user.user_id))
+    except Exception as e:  # noqa
+        logger.error(f"notify_customer_order_status error: {e}")
