@@ -1,0 +1,11 @@
+from django.apps import AppConfig
+
+
+class CourseConfig(AppConfig):
+    default_auto_field = 'django.db.models.BigAutoField'
+    name = 'apps.course'
+    verbose_name = 'Kurs Arizalari'
+
+    def ready(self):
+        """Run when the app is ready"""
+        pass

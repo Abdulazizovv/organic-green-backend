@@ -58,6 +58,7 @@ INSTALLED_APPS = [
     "apps.cart",
     "apps.favorites",
     "apps.order",
+    "apps.course",
     "apps.franchise",
 ]
 
@@ -191,7 +192,8 @@ REST_FRAMEWORK = {
         'anon': '2000/hour',    # Very high limit for anonymous users  
         'user': '10000/hour',   # Very high limit for authenticated users
         'auth': '30/minute',    # Moderate limit for auth endpoints (registration/login)
-        'burst': '200/minute'   # For burst protection on specific endpoints
+        'burst': '200/minute',  # For burst protection on specific endpoints
+        'course_application': '10/hour'  # Limit course applications to prevent spam
     }
 }
 

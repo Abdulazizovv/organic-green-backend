@@ -189,3 +189,242 @@
     border-radius: 4px;
     margin: 10px 0;
 }
+
+/* ===== COURSE ADMIN STYLES ===== */
+
+/* Enhanced course list display styling */
+.course-admin-list .admin-object-tools {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 10px;
+    padding: 15px;
+    margin-bottom: 20px;
+}
+
+.course-admin-list .admin-object-tools a {
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    backdrop-filter: blur(10px);
+    border-radius: 8px;
+    color: white !important;
+    padding: 10px 20px;
+    text-decoration: none;
+    transition: all 0.3s ease;
+}
+
+.course-admin-list .admin-object-tools a:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+}
+
+/* Enhanced changelist styling for courses */
+.course-changelist .results table thead th {
+    background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+    color: white;
+    font-weight: 600;
+    padding: 12px 8px;
+    border: none;
+}
+
+.course-changelist .results table tbody tr:nth-child(even) {
+    background-color: #f8f9fa;
+}
+
+.course-changelist .results table tbody tr:hover {
+    background-color: #e3f2fd;
+    transition: background-color 0.2s ease;
+}
+
+/* Course fieldset styling */
+.course-form fieldset.module {
+    border: 1px solid #e0e0e0;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
+}
+
+.course-form fieldset.module h2 {
+    background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
+    color: white;
+    border-radius: 12px 12px 0 0;
+    padding: 12px 20px;
+    margin: -1px -1px 15px -1px;
+    font-weight: 600;
+    font-size: 16px;
+}
+
+/* Status badges for applications */
+.application-status-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.status-pending {
+    background: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffeaa7;
+}
+
+.status-approved {
+    background: #d1eddb;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.status-rejected {
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+/* Course metrics styling */
+.course-metrics {
+    display: flex;
+    gap: 15px;
+    margin: 15px 0;
+    flex-wrap: wrap;
+}
+
+.course-metric-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 15px;
+    border-radius: 10px;
+    text-align: center;
+    flex: 1;
+    min-width: 120px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.course-metric-card h3 {
+    margin: 0 0 5px 0;
+    font-size: 24px;
+    font-weight: bold;
+}
+
+.course-metric-card p {
+    margin: 0;
+    font-size: 12px;
+    opacity: 0.9;
+}
+
+/* Action buttons styling */
+.course-action-btn {
+    display: inline-block;
+    padding: 6px 12px;
+    margin: 2px;
+    border-radius: 6px;
+    text-decoration: none;
+    font-size: 11px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    border: none;
+    cursor: pointer;
+}
+
+.course-action-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    text-decoration: none;
+}
+
+.course-btn-primary {
+    background: #007bff;
+    color: white;
+}
+
+.course-btn-success {
+    background: #28a745;
+    color: white;
+}
+
+.course-btn-danger {
+    background: #dc3545;
+    color: white;
+}
+
+.course-btn-info {
+    background: #17a2b8;
+    color: white;
+}
+
+.course-btn-secondary {
+    background: #6c757d;
+    color: white;
+}
+
+/* Analytics dashboard styling */
+.course-analytics-dashboard {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+    margin: 20px 0;
+}
+
+.course-analytics-card {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    border-left: 4px solid #007bff;
+}
+
+.course-analytics-card h3 {
+    color: #333;
+    margin-bottom: 15px;
+    font-size: 18px;
+}
+
+.course-analytics-number {
+    font-size: 32px;
+    font-weight: bold;
+    color: #007bff;
+    margin-bottom: 5px;
+}
+
+.course-analytics-label {
+    color: #666;
+    font-size: 14px;
+}
+
+/* Application inline styling */
+.course-application-inline .tabular tr.form-row td {
+    padding: 8px;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.course-application-inline .tabular tr.form-row:hover td {
+    background-color: #f8f9fa;
+}
+
+/* Mobile responsiveness for course admin */
+@media (max-width: 768px) {
+    .course-metrics {
+        flex-direction: column;
+    }
+    
+    .course-analytics-dashboard {
+        grid-template-columns: 1fr;
+    }
+    
+    .course-action-btn {
+        display: block;
+        margin: 2px 0;
+        text-align: center;
+    }
+    
+    .course-changelist .results table {
+        font-size: 12px;
+    }
+    
+    .course-changelist .results table td,
+    .course-changelist .results table th {
+        padding: 6px 4px;
+    }
+}

@@ -64,6 +64,9 @@ urlpatterns = [
     # API routes
     path('', include(router.urls)),
     
+    # Course API
+    path('course/', include('apps.course.urls')),
+    
     # Cart API
     path('', include('apps.cart.urls')),
     
