@@ -213,7 +213,8 @@ class OrderItem(models.Model):
         null=True,
         blank=True,
         on_delete=models.SET_NULL,
-        help_text="Original product reference"
+        help_text="Original product reference",
+        related_name='order_items'
     )
     
     # Product snapshot data

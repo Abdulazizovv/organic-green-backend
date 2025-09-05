@@ -18,7 +18,7 @@ from django.utils import timezone
 from django.core.cache import cache
 from django.contrib.auth import get_user_model
 from apps.products.models import Product, ProductCategory, ProductTag
-from .serializers import (
+from api.serializers import (
     # Authentication serializers
     SimpleUserRegistrationSerializer, UserRegistrationSerializer, UserLoginSerializer, UserProfileSerializer,
     ChangePasswordSerializer, CustomTokenObtainPairSerializer, AvatarUploadSerializer,

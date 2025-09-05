@@ -30,11 +30,37 @@ from api.views import (
     api_documentation,
 )
 
+# Admin views
+from api.admin_views import (
+    UserAdminViewSet,
+    ProductAdminViewSet,
+    ProductCategoryAdminViewSet,
+    ProductTagAdminViewSet,
+    OrderAdminViewSet,
+    CourseApplicationAdminViewSet,
+    FranchiseApplicationAdminViewSet,
+    CartAdminViewSet,
+    FavoriteAdminViewSet,
+    admin_dashboard_stats,
+)
+
 # Create router for ViewSets
 router = DefaultRouter()
 router.register(r'products', ProductViewSet, basename='product')
 router.register(r'categories', ProductCategoryViewSet, basename='category')
 router.register(r'tags', ProductTagViewSet, basename='tag')
+
+# Admin router
+admin_router = DefaultRouter()
+admin_router.register(r'users', UserAdminViewSet, basename='admin-users')
+admin_router.register(r'products', ProductAdminViewSet, basename='admin-products')
+admin_router.register(r'categories', ProductCategoryAdminViewSet, basename='admin-categories')
+admin_router.register(r'tags', ProductTagAdminViewSet, basename='admin-tags')
+admin_router.register(r'orders', OrderAdminViewSet, basename='admin-orders')
+admin_router.register(r'course-applications', CourseApplicationAdminViewSet, basename='admin-course-applications')
+admin_router.register(r'franchise-applications', FranchiseApplicationAdminViewSet, basename='admin-franchise-applications')
+admin_router.register(r'carts', CartAdminViewSet, basename='admin-carts')
+admin_router.register(r'favorites', FavoriteAdminViewSet, basename='admin-favorites')
 
 app_name = 'api'
 
@@ -63,6 +89,10 @@ urlpatterns = [
     
     # API routes
     path('', include(router.urls)),
+    
+    # Admin API routes
+    path('admin/', include(admin_router.urls)),
+    path('admin/dashboard/', admin_dashboard_stats, name='admin-dashboard'),
     
     # Course API
     path('course/', include('apps.course.urls')),
