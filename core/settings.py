@@ -34,6 +34,22 @@ ALLOWED_HOSTS = [
     if host.strip()
 ]
 
+# CSRF trusted origins (must include scheme in Django 4+). We build from explicit
+# env var if provided, otherwise derive from ALLOWED_HOSTS (excluding wildcards)
+_csrf_env = os.environ.get("CSRF_TRUSTED_ORIGINS", "")
+if _csrf_env:
+    CSRF_TRUSTED_ORIGINS = [o.strip() for o in _csrf_env.split(",") if o.strip()]
+else:
+    CSRF_TRUSTED_ORIGINS = []
+    for _h in ALLOWED_HOSTS:
+        if _h in ("*", "localhost", "127.0.0.1"):
+            # add both http/https for local dev hosts
+            if _h != "*":
+                CSRF_TRUSTED_ORIGINS.extend([f"http://{_h}", f"https://{_h}"])
+            continue
+        CSRF_TRUSTED_ORIGINS.append(f"https://{_h}")
+        CSRF_TRUSTED_ORIGINS.append(f"http://{_h}")
+
 
 # Application definition
 
@@ -67,7 +83,10 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
     "http://organicgreen.uz",
-    "https://organicgreen.uz"
+    "https://organicgreen.uz",
+    # API subdomain (add both http/https just in case of mixed usage through proxies)
+    "https://api.organicgreen.uz",
+    "http://api.organicgreen.uz",
 ]
 
 CORS_ALLOW_HEADERS = list(default_headers) + [
